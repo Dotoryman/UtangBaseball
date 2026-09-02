@@ -1,13 +1,8 @@
 'use client';
 
-import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+/* oxlint-disable next/no-img-element */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,17 +30,6 @@ const PITCHES: Array<{ type: PitchType; duration: number }> = [
   { type: '커브', duration: 1480 },
   { type: '체인지업', duration: 1760 },
 ];
-const framePositions = [
-  '0% 0%',
-  '33.333% 0%',
-  '66.666% 0%',
-  '100% 0%',
-  '0% 100%',
-  '33.333% 100%',
-  '66.666% 100%',
-  '100% 100%',
-];
-
 function loadRecords(): RecordItem[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -54,6 +38,14 @@ function loadRecords(): RecordItem[] {
     return [];
   }
 }
+
+const POSE_BY_JUDGMENT: Record<Judgment, string> = {
+  MISS: '/utang-pose-miss.png',
+  FOUL: '/utang-pose-foul.png',
+  GOOD: '/utang-pose-good.png',
+  PERFECT: '/utang-pose-good.png',
+  'HOME RUN': '/utang-pose-home-run.png',
+};
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>('intro');
@@ -66,18 +58,30 @@ export default function Home() {
   const [maxDistance, setMaxDistance] = useState(0);
   const [judgment, setJudgment] = useState<Judgment | null>(null);
   const [lastDistance, setLastDistance] = useState(0);
-  const [frame, setFrame] = useState(0);
   const [isSwinging, setIsSwinging] = useState(false);
   const [ballFlying, setBallFlying] = useState(false);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const frameTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
 
-  useEffect(() => setRecords(loadRecords()), []);
+  useEffect(() => {
+    const localRecordsTimer = window.setTimeout(
+      () => setRecords(loadRecords()),
+      100,
+    );
+    fetch('/api/scores?period=all')
+      .then((response) =>
+        response.ok
+          ? (response.json() as Promise<{ records?: RecordItem[] }>)
+          : null,
+      )
+      .then((data) => {
+        if (Array.isArray(data?.records)) setRecords(data.records);
+      })
+      .catch(() => undefined);
+    return () => window.clearTimeout(localRecordsTimer);
+  }, []);
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    frameTimersRef.current.forEach(clearTimeout);
-    frameTimersRef.current = [];
   }, []);
   useEffect(() => clearTimers, [clearTimers]);
 
@@ -99,6 +103,20 @@ export default function Home() {
       );
       setRecords(nextRecords);
       setScreen('result');
+      fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextRecord),
+      })
+        .then((response) =>
+          response.ok
+            ? (response.json() as Promise<{ records?: RecordItem[] }>)
+            : null,
+        )
+        .then((data) => {
+          if (Array.isArray(data?.records)) setRecords(data.records);
+        })
+        .catch(() => undefined);
     },
     [nickname],
   );
@@ -110,7 +128,6 @@ export default function Home() {
       setLastDistance(0);
       setBallFlying(false);
       setIsSwinging(false);
-      setFrame(0);
       const config = PITCHES[Math.floor(Math.random() * PITCHES.length)];
       const nextPitch: Pitch = {
         id: Date.now() + Math.random(),
@@ -124,11 +141,6 @@ export default function Home() {
           setJudgment('MISS');
           setCombo(0);
           setIsSwinging(true);
-          [1, 2, 3, 5, 6].forEach((nextFrame, index) =>
-            frameTimersRef.current.push(
-              setTimeout(() => setFrame(nextFrame), index * 80),
-            ),
-          );
           timeoutRef.current = setTimeout(() => {
             setPitch(null);
             if (nextNumber >= TOTAL_PITCHES) {
@@ -151,7 +163,7 @@ export default function Home() {
   );
 
   const startGame = useCallback(
-    (event?: FormEvent) => {
+    (event?: { preventDefault(): void }) => {
       event?.preventDefault();
       if (!nickname.trim()) setNickname('우땅이');
       clearTimers();
@@ -214,9 +226,6 @@ export default function Home() {
     setBallFlying(
       result === 'GOOD' || result === 'PERFECT' || result === 'HOME RUN',
     );
-    [0, 80, 145, 200, 255, 320, 410, 540].forEach((delay, index) =>
-      frameTimersRef.current.push(setTimeout(() => setFrame(index), delay)),
-    );
     timeoutRef.current = setTimeout(
       () => {
         setPitch(null);
@@ -271,6 +280,18 @@ export default function Home() {
           : score >= 5000
             ? '동네 야구 우땅이'
             : '야구공 구경 온 우땅이';
+  const batterImage = judgment
+    ? POSE_BY_JUDGMENT[judgment]
+    : '/utang-batter-clean.png';
+  const batterPose = judgment
+    ? judgment.replace(' ', '-').toLowerCase()
+    : 'ready';
+  const resultImage =
+    homeRuns > 0
+      ? '/utang-pose-home-run.png'
+      : score >= 5000
+        ? '/utang-pose-good.png'
+        : '/utang-pose-miss.png';
 
   return (
     <main className="game-shell">
@@ -336,8 +357,8 @@ export default function Home() {
 
         {screen === 'playing' && (
           <button
-            className="play-field"
             type="button"
+            className="play-field"
             onPointerDown={resolveSwing}
             aria-label="화면을 눌러 타격"
           >
@@ -366,22 +387,21 @@ export default function Home() {
                 <b>BASEBALL</b>
               </div>
               <div className="stands">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
+                <img
+                  src="/utang-crowd-strip.png"
+                  alt="응원하는 우땅이 관중들"
+                  className="crowd-strip"
+                />
               </div>
               <div className="field-grass" />
               <div className="infield" />
-              <div className="pitcher">
-                <span className="pitcher-head" />
-                <span className="pitcher-body" />
-                <span className="pitcher-arm" />
-              </div>
+              <div className="pitcher-mound" />
+              <div className="home-plate" />
+              <img
+                src="/utang-pitcher.png"
+                alt="투구하는 우땅이"
+                className="pitcher"
+              />
               {pitch && (
                 <div
                   key={pitch.id}
@@ -399,9 +419,15 @@ export default function Home() {
               <div
                 className={`batter-shadow ${isSwinging ? 'swinging' : ''}`}
               />
-              <div
-                className={`sprite batter ${isSwinging ? 'swinging' : 'idle'}`}
-                style={{ backgroundPosition: framePositions[frame] }}
+              <img
+                key={batterImage}
+                src={batterImage}
+                alt={
+                  judgment
+                    ? `${judgment} 반응을 하는 우땅이`
+                    : '타석에 선 우땅이'
+                }
+                className={`batter batter-${batterPose} ${isSwinging ? 'swinging' : 'idle'}`}
               />
               {pitch && !judgment && (
                 <div className="pitch-label">{pitch.type}</div>
@@ -430,7 +456,11 @@ export default function Home() {
           <div className="result-panel screen-panel">
             <p className="badge">경기 종료</p>
             <div className="result-character">
-              <div className="sprite sprite-celebrate" />
+              <img
+                src={resultImage}
+                alt="경기를 마친 우땅이"
+                className="result-image"
+              />
             </div>
             <p className="result-grade">{grade}</p>
             <h2>{score.toLocaleString()}점</h2>

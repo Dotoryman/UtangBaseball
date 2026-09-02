@@ -153,18 +153,6 @@ input {
   object-fit: contain;
   animation: cheer-bob 1.6s ease-in-out infinite;
 }
-.sprite {
-  background-image: url('/utang-batting-spritesheet.png');
-  background-size: 400% 200%;
-  background-repeat: no-repeat;
-  mix-blend-mode: multiply;
-}
-.sprite-celebrate {
-  width: 100%;
-  height: 100%;
-  background-position: 100% 100%;
-  animation: cheer-bob 1s ease-in-out infinite;
-}
 .spark {
   position: absolute;
   color: #f4bd00;
@@ -263,6 +251,7 @@ input {
 }
 .play-field {
   position: absolute;
+  display: block;
   inset: 78px 0 0;
   z-index: 5;
   width: 100%;
@@ -273,16 +262,20 @@ input {
   text-align: inherit;
   touch-action: manipulation;
   user-select: none;
+  cursor: pointer;
 }
 .status-row {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 12px;
+  left: 12px;
   z-index: 10;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
-  margin: 0 14px;
-  padding: 11px 13px;
+  height: 58px;
+  padding: 8px 12px;
   border: 2px solid rgb(255 255 255/68%);
   border-radius: 17px;
   background: rgb(255 255 255/88%);
@@ -324,9 +317,9 @@ input {
 }
 .stadium {
   position: absolute;
-  inset: 70px 0 104px;
+  inset: 66px 0 92px;
   overflow: hidden;
-  background: linear-gradient(#8ad8ff 0 48%, #3f9d46 48% 100%);
+  background: linear-gradient(#8ad8ff 0 43%, #438f43 43% 100%);
 }
 .cloud {
   position: absolute;
@@ -364,7 +357,7 @@ input {
 }
 .scoreboard {
   position: absolute;
-  top: 33px;
+  top: 22px;
   left: 50%;
   translate: -50%;
   width: 132px;
@@ -389,98 +382,79 @@ input {
 }
 .stands {
   position: absolute;
-  top: 107px;
+  top: 91px;
   width: 100%;
-  height: 94px;
-  display: flex;
-  align-items: end;
-  justify-content: space-around;
-  padding: 0 14px 19px;
-  border-bottom: 10px solid #0f4d84;
-  background: repeating-linear-gradient(0deg, #dfe7ed 0 8px, #b9c6d1 8px 11px);
-  clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 100%);
+  height: 99px;
+  padding: 13px 7px 10px;
+  border-top: 5px solid #26374d;
+  border-bottom: 9px solid #1251a6;
+  background: linear-gradient(#fff 0 70%, #e7edf3 70% 100%);
+  clip-path: polygon(0 12%, 100% 0, 100% 100%, 0 100%);
+  overflow: hidden;
 }
-.stands i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffcf3d;
-  box-shadow:
-    18px 3px #2461a6,
-    -16px 6px #d44b4b,
-    7px -8px #fff,
-    -8px -11px #253957;
+.crowd-strip {
+  display: block;
+  width: 100%;
+  height: 78px;
+  object-fit: cover;
+  object-position: center 46%;
+  mix-blend-mode: multiply;
 }
 .field-grass {
   position: absolute;
-  inset: 191px 0 0;
+  inset: 181px 0 0;
   background: repeating-linear-gradient(
-    100deg,
-    #479f47 0 38px,
-    #55aa4d 38px 76px
+    94deg,
+    #438f43 0 44px,
+    #4d9c47 44px 88px
   );
 }
 .infield {
   position: absolute;
   left: 50%;
-  bottom: -95px;
-  width: 440px;
-  height: 350px;
+  bottom: -144px;
+  width: 452px;
+  height: 362px;
   translate: -50%;
   rotate: 45deg;
   border: 8px solid rgb(255 255 255/70%);
   border-radius: 28px;
-  background: #c98a54;
-  box-shadow: inset 0 0 0 35px #4b9f49;
+  background: #ca8c59;
+  box-shadow: inset 0 0 0 37px #4b9847;
+}
+.pitcher-mound {
+  position: absolute;
+  z-index: 2;
+  top: 53%;
+  right: 54px;
+  width: 92px;
+  height: 31px;
+  border-radius: 50%;
+  background: #b87749;
+  box-shadow: inset 0 4px 0 rgb(255 222 180/25%);
+}
+.home-plate {
+  position: absolute;
+  z-index: 5;
+  left: 133px;
+  bottom: 21px;
+  width: 25px;
+  height: 20px;
+  background: #f8f4e9;
+  clip-path: polygon(0 0, 100% 0, 85% 72%, 50% 100%, 15% 72%);
+  opacity: 0.9;
 }
 .pitcher {
   position: absolute;
   z-index: 3;
-  top: 39%;
-  right: 37px;
-  width: 58px;
-  height: 82px;
-  animation: pitcher-bob 0.7s ease-in-out infinite alternate;
-}
-.pitcher-head {
-  position: absolute;
-  top: 0;
-  left: 17px;
-  width: 32px;
-  height: 32px;
-  border: 3px solid #1b2c44;
+  top: 38%;
+  right: 29px;
+  width: 130px;
+  height: 138px;
+  object-fit: contain;
+  object-position: center bottom;
   border-radius: 50%;
-  background: #bd835f;
-}
-.pitcher-head:before {
-  content: '';
-  position: absolute;
-  inset: -6px -5px auto;
-  height: 13px;
-  border-radius: 15px 15px 5px 5px;
-  background: #1a56a4;
-}
-.pitcher-body {
-  position: absolute;
-  left: 11px;
-  top: 29px;
-  width: 43px;
-  height: 42px;
-  border: 3px solid #1b2c44;
-  border-radius: 13px 13px 20px 20px;
-  background: #f7f8f6;
-}
-.pitcher-arm {
-  position: absolute;
-  left: 0;
-  top: 33px;
-  width: 25px;
-  height: 12px;
-  border: 3px solid #1b2c44;
-  border-radius: 12px;
-  background: #bd835f;
-  transform-origin: right;
-  animation: pitch-arm 0.7s ease-in-out infinite alternate;
+  animation: pitcher-bob 0.7s ease-in-out infinite alternate;
 }
 .baseball {
   position: absolute;
@@ -513,25 +487,48 @@ input {
 .batter {
   position: absolute;
   z-index: 11;
-  left: 2px;
-  bottom: 26px;
-  width: 235px;
-  height: 312px;
-  filter: drop-shadow(0 5px 1px rgb(40 58 42/14%));
+  left: 4px;
+  bottom: 10px;
+  width: 196px;
+  height: 222px;
+  object-fit: contain;
+  object-position: center bottom;
+  mix-blend-mode: multiply;
   transform-origin: 50% 88%;
 }
 .batter.idle {
   animation: batter-idle 0.85s ease-in-out infinite alternate;
 }
 .batter.swinging {
-  animation: hit-pop 0.55s ease-out;
+  animation: hit-pop 0.55s ease-out both;
+}
+.batter-home-run {
+  width: 205px;
+  height: 220px;
+  animation: home-run-hop 0.75s cubic-bezier(0.17, 0.89, 0.32, 1.35) both !important;
+}
+.batter-good,
+.batter-perfect {
+  width: 196px;
+  height: 218px;
+  animation: good-hop 0.65s ease-out both !important;
+}
+.batter-foul {
+  width: 190px;
+  height: 218px;
+  animation: foul-wobble 0.65s ease-out both !important;
+}
+.batter-miss {
+  width: 196px;
+  height: 220px;
+  animation: miss-slump 0.72s ease-out both !important;
 }
 .batter-shadow {
   position: absolute;
   z-index: 8;
-  left: 53px;
-  bottom: 48px;
-  width: 135px;
+  left: 43px;
+  bottom: 29px;
+  width: 125px;
   height: 25px;
   border-radius: 50%;
   background: rgb(37 73 41/24%);
@@ -605,7 +602,7 @@ input {
   position: absolute;
   z-index: 15;
   inset: auto 0 0;
-  height: 104px;
+  height: 92px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -647,23 +644,32 @@ input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 23px 23px 18px;
+  justify-content: center;
+  padding: 16px 22px;
   text-align: center;
 }
 .result-character {
-  width: 185px;
-  height: 178px;
-  margin-top: 1px;
+  width: 158px;
+  height: 158px;
+  margin-top: 2px;
+}
+.result-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  animation: cheer-bob 1.4s ease-in-out infinite;
 }
 .result-grade {
-  margin: -6px 0 2px;
+  margin: 0 0 3px;
   color: #1251a6;
   font-size: 14px;
   font-weight: 1000;
 }
 .result-panel h2 {
   margin: 0;
-  font-size: 42px;
+  font-size: 39px;
   line-height: 1;
   letter-spacing: -2px;
 }
@@ -672,7 +678,7 @@ input {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 7px;
-  margin-top: 18px;
+  margin-top: 13px;
 }
 .result-stats div {
   padding: 11px 5px;
@@ -692,7 +698,7 @@ input {
 }
 .ranking-card {
   width: 100%;
-  margin-top: 14px;
+  margin-top: 11px;
   padding: 12px 14px;
   border-radius: 16px;
   background: #fff6c6;
@@ -720,10 +726,10 @@ input {
   color: #5c4907;
 }
 .result-panel .start-button {
-  margin-top: 14px;
+  margin-top: 11px;
 }
 .home-button {
-  margin-top: 8px;
+  margin-top: 4px;
   color: #6d7789;
 }
 @keyframes cheer-bob {
@@ -763,6 +769,55 @@ input {
   }
   100% {
     transform: scale(1);
+  }
+}
+@keyframes home-run-hop {
+  0% {
+    transform: translateY(12px) scale(0.82) rotate(-7deg);
+    opacity: 0.3;
+  }
+  65% {
+    transform: translateY(-12px) scale(1.06) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes good-hop {
+  0% {
+    transform: translateY(8px) scale(0.9);
+  }
+  55% {
+    transform: translateY(-7px) scale(1.04);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes foul-wobble {
+  0% {
+    transform: rotate(0) scale(0.92);
+  }
+  35% {
+    transform: rotate(-6deg) scale(1.03);
+  }
+  70% {
+    transform: rotate(4deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+@keyframes miss-slump {
+  0% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+  55% {
+    transform: translateY(8px) rotate(-3deg) scaleY(0.94);
+  }
+  100% {
+    transform: translateY(3px) rotate(-1deg);
   }
 }
 @keyframes shadow-squash {
@@ -875,6 +930,33 @@ input {
   }
   .play-field {
     top: 68px;
+  }
+  .status-row {
+    height: 54px;
+  }
+  .stadium {
+    inset: 62px 0 86px;
+  }
+  .tap-guide {
+    height: 86px;
+  }
+  .batter {
+    bottom: 10px;
+    width: 174px;
+    height: 198px;
+  }
+  .pitcher {
+    right: 23px;
+    width: 112px;
+    height: 120px;
+  }
+  .batter-home-run,
+  .batter-good,
+  .batter-perfect,
+  .batter-foul,
+  .batter-miss {
+    width: 180px;
+    height: 198px;
   }
   .screen-panel {
     height: calc(100% - 78px);
