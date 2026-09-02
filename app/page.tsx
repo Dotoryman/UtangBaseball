@@ -153,7 +153,7 @@ export default function Home() {
   const startGame = useCallback(
     (event?: FormEvent) => {
       event?.preventDefault();
-      if (!nickname.trim()) return;
+      if (!nickname.trim()) setNickname('우땅이');
       clearTimers();
       setScore(0);
       setCombo(0);
@@ -277,8 +277,8 @@ export default function Home() {
       <section className="phone-stage" aria-label="우땅야구 게임 화면">
         <div className="sky-glow" />
         <header className="game-header">
-          <div>
-            <p className="eyebrow">10구 한구승부</p>
+          <div className="header-brand">
+            <img src="/utang-sun-logo.png" alt="" className="header-logo" />
             <h1>우땅야구</h1>
           </div>
           <div className="mini-score">
@@ -290,7 +290,7 @@ export default function Home() {
         {screen === 'intro' && (
           <div className="intro-panel screen-panel">
             <div className="hero-utang" aria-hidden="true">
-              <div className="sprite sprite-celebrate" />
+              <img src="/utang-intro-hero.png" alt="" className="hero-image" />
               <span className="spark spark-one">✦</span>
               <span className="spark spark-two">✦</span>
             </div>
@@ -314,15 +314,11 @@ export default function Home() {
                 maxLength={10}
                 value={nickname}
                 onChange={(event) => setNickname(event.target.value)}
-                placeholder="우땅이"
+                placeholder="우땅이 (기본)"
                 autoComplete="nickname"
                 className="nickname-input"
               />
-              <Button
-                type="submit"
-                disabled={!nickname.trim()}
-                className="start-button"
-              >
+              <Button type="submit" className="start-button">
                 경기 시작
               </Button>
             </form>

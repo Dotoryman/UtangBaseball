@@ -9,7 +9,9 @@ export const metadata: Metadata = {
     title: '우땅야구',
     description: '10구로 겨루는 오늘의 한구승부',
     type: 'website',
-    images: [{ url: '/og.png', width: 1536, height: 864, alt: '우땅야구 타격 장면' }],
+    images: [
+      { url: '/og.png', width: 1536, height: 864, alt: '우땅야구 타격 장면' },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
