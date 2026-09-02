@@ -24,4 +24,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npx wrangler d1 migrations apply DB --remote --config wrangler.jsonc
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
       - run: npx wrangler deploy --config dist/server/wrangler.json
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+      - name: Deployment setup notice
+        if: ${{ env.CLOUDFLARE_API_TOKEN == '' }}
+        run: echo "Build verified. Add CLOUDFLARE_API_TOKEN to enable automatic deployment."
