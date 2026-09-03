@@ -20,9 +20,9 @@ type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launc
 
 const TOTAL_PITCHES = 10;
 const WINDUP_MS = 760;
-const CONTACT_PROGRESS = 0.84;
+const CONTACT_PROGRESS = 0.86;
 const PITCHES: Array<{ type: PitchType; duration: number }> = [
-  { type: '직구', duration: 1500 }, { type: '커브', duration: 1780 }, { type: '체인지업', duration: 2050 },
+  { type: '직구', duration: 1650 }, { type: '커브', duration: 1900 }, { type: '체인지업', duration: 2150 },
 ];
 const RESULT_META: Record<Outcome, { label: string; pose: string; tier: string }> = {
   WHIFF: { label: '에구구!', pose: '/utang-pose-miss-authentic.png', tier: 'miss' },
@@ -33,23 +33,11 @@ const RESULT_META: Record<Outcome, { label: string; pose: string; tier: string }
   TRIPLE: { label: '3루타!', pose: '/utang-pose-good-authentic.png', tier: 'extra' },
   HOME_RUN: { label: '홈런!', pose: '/utang-batter-v8-follow.png', tier: 'homer' },
 };
-const BATTER_FRAMES = [
-  '/utang-batter-v8-ready.png',
-  '/utang-batter-v8-load.png',
-  '/utang-batter-v8-stride.png',
-  '/utang-batter-v8-start.png',
-  '/utang-batter-v8-mid.png',
-  '/utang-batter-v8-contact.png',
-  '/utang-batter-v8-extension.png',
-  '/utang-batter-v8-follow.png',
-];
-
 function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)); }
-function calculateContact(progress: number): Contact {
-  const error = Math.abs(progress - CONTACT_PROGRESS);
-  if (error > 0.3) return { outcome: 'WHIFF', distance: 0, exitVelocity: 0, launchAngle: 0, points: 0 };
-  if (error > 0.21) return { outcome: 'FOUL', distance: 0, exitVelocity: 78, launchAngle: 48, points: 180 };
-  const quality = clamp(1 - error / 0.21, 0, 1);
+function calculateContact(error: number): Contact {
+  if (error > 0.34) return { outcome: 'WHIFF', distance: 0, exitVelocity: 0, launchAngle: 0, points: 0 };
+  if (error > 0.24) return { outcome: 'FOUL', distance: 0, exitVelocity: 78, launchAngle: 48, points: 180 };
+  const quality = clamp(1 - error / 0.24, 0, 1);
   const exitVelocity = Math.round(clamp(76 + quality * 87 + (Math.random() - 0.5) * 8, 72, 166));
   const launchAngle = Math.round(clamp(-7 + quality * 37 + (Math.random() - 0.5) * 10, -10, 38));
   const angleEfficiency = clamp(1 - Math.abs(launchAngle - 27) / 42, 0.2, 1);
@@ -59,6 +47,16 @@ function calculateContact(progress: number): Contact {
   else if (distance >= 73) outcome = 'DOUBLE'; else if (distance >= 30) outcome = 'SINGLE';
   const base = { INFIELD_HIT: 800, SINGLE: 1200, DOUBLE: 2100, TRIPLE: 3000, HOME_RUN: 4500 }[outcome];
   return { outcome, distance, exitVelocity, launchAngle, points: base + distance * 10 };
+}
+function measureVisualSwingError() {
+  if (typeof document === 'undefined') return null;
+  const ball = document.querySelector('.baseball')?.getBoundingClientRect();
+  const target = document.querySelector('.contact-core')?.getBoundingClientRect();
+  const stage = document.querySelector('.stadium')?.getBoundingClientRect();
+  if (!ball || !target || !stage) return null;
+  const dx = ball.left + ball.width / 2 - (target.left + target.width / 2);
+  const dy = ball.top + ball.height / 2 - (target.top + target.height / 2);
+  return Math.hypot(dx, dy) / (stage.height * 0.46);
 }
 function loadRecords(): RecordItem[] {
   if (typeof window === 'undefined') return [];
@@ -82,22 +80,25 @@ async function createShareCard(name: string, score: number, homeRuns: number, ma
   const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 630;
   const context = canvas.getContext('2d'); if (!context) return null;
   try {
-    const background = await loadImage('/utang-share-card-v3-bg.png');
+    const background = await loadImage('/utang-share-card-v4-bg.jpg');
     context.drawImage(background, 0, 0, 1200, 630);
   } catch {
     const fallback = context.createLinearGradient(0, 0, 1200, 630); fallback.addColorStop(0, '#071c46'); fallback.addColorStop(1, '#164f9e');
     context.fillStyle = fallback; context.fillRect(0, 0, 1200, 630);
   }
-  context.textBaseline = 'alphabetic';
-  context.fillStyle = '#ffcf45'; context.font = '900 24px "Malgun Gothic", sans-serif'; context.fillText('UTANG BASEBALL · FINAL SCORE', 118, 154);
-  context.fillStyle = '#fff'; context.font = '900 43px "Malgun Gothic", sans-serif'; context.fillText(`${name} 선수의 10구 승부`, 118, 214);
-  context.fillStyle = '#fff'; context.font = '900 104px "Arial Black", "Malgun Gothic", sans-serif'; context.fillText(score.toLocaleString(), 112, 330);
+  context.textBaseline = 'alphabetic'; context.textAlign = 'left';
+  context.fillStyle = '#ffcf45'; context.font = '900 23px Arial, sans-serif'; context.fillText('UTANG BASEBALL · FINAL SCORE', 105, 154);
+  const playerTitle = `${name} 선수의 10구 승부`;
+  context.fillStyle = '#fff'; context.font = '900 42px "Malgun Gothic", sans-serif';
+  if (context.measureText(playerTitle).width > 630) context.font = '900 34px "Malgun Gothic", sans-serif';
+  context.fillText(playerTitle, 105, 211);
+  context.fillStyle = '#fff'; context.font = '900 98px "Arial Black", "Malgun Gothic", sans-serif'; context.fillText(score.toLocaleString(), 100, 325);
   const scoreWidth = context.measureText(score.toLocaleString()).width;
-  context.fillStyle = '#ffcf45'; context.font = '900 36px "Malgun Gothic", sans-serif'; context.fillText('점', 125 + scoreWidth, 326);
-  context.strokeStyle = 'rgba(255,255,255,.16)'; context.lineWidth = 2; context.beginPath(); context.moveTo(118, 365); context.lineTo(755, 365); context.stroke();
-  context.fillStyle = '#b9d7ff'; context.font = '800 22px "Malgun Gothic", sans-serif'; context.fillText('홈런', 120, 410); context.fillText('최고 비거리', 325, 410); context.fillText('최고 콤보', 555, 410);
-  context.fillStyle = '#fff'; context.font = '900 35px "Malgun Gothic", sans-serif'; context.fillText(`${homeRuns}개`, 120, 456); context.fillText(`${maxDistance}m`, 325, 456); context.fillText(`×${maxCombo}`, 555, 456);
-  context.fillStyle = '#ffcf45'; context.font = '800 23px "Malgun Gothic", sans-serif'; context.fillText('utangbaseball.cloud', 118, 535);
+  context.fillStyle = '#ffcf45'; context.font = '900 34px "Malgun Gothic", sans-serif'; context.fillText('점', 114 + scoreWidth, 321);
+  context.strokeStyle = 'rgba(255,255,255,.18)'; context.lineWidth = 2; context.beginPath(); context.moveTo(105, 354); context.lineTo(735, 354); context.stroke();
+  context.fillStyle = '#b9d7ff'; context.font = '800 20px "Malgun Gothic", sans-serif'; context.fillText('홈런', 105, 397); context.fillText('최고 비거리', 310, 397); context.fillText('최고 콤보', 535, 397);
+  context.fillStyle = '#fff'; context.font = '900 34px "Malgun Gothic", sans-serif'; context.fillText(`${homeRuns}개`, 105, 443); context.fillText(`${maxDistance}m`, 310, 443); context.fillText(`×${maxCombo}`, 535, 443);
+  context.fillStyle = '#ffcf45'; context.font = '800 22px Arial, sans-serif'; context.fillText('utangbaseball.cloud', 105, 515);
   return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png', .94));
 }
 
@@ -121,8 +122,10 @@ export default function Home() {
   }, []);
   useEffect(() => {
     const characterAssets = [
-      ...BATTER_FRAMES,
+      '/utang-batter-v8-strip.webp',
+      '/utang-batter-v8-follow.png',
       '/utang-pitcher-authentic.png',
+      '/utang-pitcher-follow-v2.png',
       '/utang-catcher-authentic.png',
       '/utang-pose-good-authentic.png',
       '/utang-pose-miss-authentic.png',
@@ -160,7 +163,9 @@ export default function Home() {
   }, [clearTimers, nickname, queuePitch, schedule]);
   const resolveSwing = useCallback(() => {
     if (screen !== 'playing' || countdown || !pitch || batterPhase === 'swing' || contact) return;
-    clearTimers(); setBatterPhase('swing'); setPitcherPhase('followThrough'); const progress = clamp((performance.now() - pitch.startedAt) / pitch.duration, 0, 1.14); const nextContact = calculateContact(progress);
+    clearTimers(); setBatterPhase('swing'); setPitcherPhase('followThrough');
+    const progress = clamp((performance.now() - pitch.startedAt) / pitch.duration, 0, 1.14);
+    const nextContact = calculateContact(measureVisualSwingError() ?? Math.abs(progress - CONTACT_PROGRESS));
     const keepsCombo = !['WHIFF', 'FOUL'].includes(nextContact.outcome); const nextCombo = keepsCombo ? combo + 1 : 0; const nextMaxCombo = Math.max(maxCombo, nextCombo);
     const earned = Math.round(nextContact.points * (1 + Math.min(nextCombo, 20) * .1)); const nextScore = score + earned;
     const nextHomeRuns = homeRuns + (nextContact.outcome === 'HOME_RUN' ? 1 : 0); const nextMaxDistance = Math.max(maxDistance, nextContact.distance);
@@ -184,12 +189,12 @@ export default function Home() {
     window.setTimeout(() => setShareNotice(''), 2400);
   }, [homeRuns, maxCombo, maxDistance, nickname, score]);
   const returnHome = useCallback(() => { clearTimers(); setPitch(null); setContact(null); setScreen('intro'); }, [clearTimers]);
-  const pitcherImage = pitcherPhase === 'throw' || pitcherPhase === 'followThrough' ? '/utang-pitcher-follow-authentic.png' : '/utang-pitcher-authentic.png';
+  const pitcherImage = pitcherPhase === 'throw' || pitcherPhase === 'followThrough' ? '/utang-pitcher-follow-v2.png' : '/utang-pitcher-authentic.png';
 
   return <main className="game-shell"><section className="phone-stage" aria-label="우땅야구 게임 화면">
     {screen === 'intro' && <div className="intro-panel screen-panel">
       <header className="intro-topbar"><div className="intro-brand"><img src="/utang-sun-logo.png" alt="" /><strong>우땅야구</strong></div><button type="button" className="help-button" onClick={() => setShowHelp(true)} aria-label="게임 방법 보기"><HelpCircle size={21} /></button></header>
-      <div className="intro-scene"><span className="intro-halo" aria-hidden="true" /><div className="hero-sprite" aria-hidden="true">{BATTER_FRAMES.map((src, index) => <img key={src} src={src} alt="" className={`hero-image hero-frame-${index + 1}`} />)}</div><span className="hero-spark spark-one">✦</span><span className="hero-spark spark-two">✦</span></div>
+      <div className="intro-scene"><span className="intro-halo" aria-hidden="true" /><div className="hero-sprite" aria-hidden="true" /><span className="hero-spark spark-one">✦</span><span className="hero-spark spark-two">✦</span></div>
       <div className="intro-copy"><h1>딱 맞는 순간,<br /><em>날려버려!</em></h1><p>10개의 공으로 오늘의 우땅왕에 도전해.</p></div>
       <form className="nickname-form" onSubmit={startGame}><label htmlFor="nickname" className="sr-only">닉네임</label><Input id="nickname" maxLength={10} value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="우땅이" autoComplete="nickname" className="nickname-input" /><Button type="submit" className="start-button">PLAY BALL!</Button></form>
       <div className="intro-ranking"><div className="intro-ranking-head"><div className="ranking-title"><Trophy size={17} /> 오늘의 우땅왕</div><span>매일 00:00 · TOP 5</span></div>{records.length > 0 ? records.slice(0, 5).map((item, index) => <div className={`ranking-row rank-${index + 1}`} key={`${item.playedAt}-${index}`}><b>{index + 1}</b><span>{item.nickname}</span><strong>{item.score.toLocaleString()}점</strong></div>) : <p className="ranking-empty">오늘의 첫 기록을 세워봐!</p>}</div>
@@ -200,7 +205,7 @@ export default function Home() {
       <div className="stadium"><img src="/utang-stadium-v4.webp" alt="다양한 우땅이 관중들이 응원하는 야구장" className="stadium-background" /><img key={`${pitcherPhase}-${pitchNumber}`} src={pitcherImage} alt="투수 우땅이" className={`pitcher pitcher-${pitcherPhase}`} />{pitcherPhase === 'throw' && <span className="release-flash" aria-hidden="true" />}<div className="pitch-guide" aria-hidden="true" /><img src="/utang-catcher-authentic.png" alt="포수 우땅이" className={`catcher catcher-${catcherPhase}`} />
         {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true"><span>ABS</span>{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
         {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball flying-${contact?.outcome.toLowerCase()}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
-        <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span>{BATTER_FRAMES.map((src, index) => <img key={src} src={src} alt="" className={`batter-frame batter-frame-${index + 1}`} loading="eager" decoding="sync" draggable={false} />)}{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
+        <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span><span className="batter-visual" aria-hidden="true" />{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
         {pitch && !contact && <div className="pitch-label">{pitch.type}</div>}{!pitch && !contact && !countdown && <div className="ready-label">투수 준비 중</div>}{contact && <div className={`judgment judgment-${RESULT_META[contact.outcome].tier}`}><strong>{RESULT_META[contact.outcome].label}</strong>{contact.distance > 0 && <span>{contact.distance}m · {contact.exitVelocity}km/h</span>}</div>}
         {!countdown && !contact && <div className="swing-cue"><span className="tap-ring"><i /></span><strong>탭!</strong><small>SPACE</small></div>}{countdown && <div className="countdown-overlay" aria-live="assertive"><span>9회말 · 10구 승부</span><strong key={countdown}>{countdown}</strong><small>{countdown === 'PLAY' ? '플레이 볼!' : '타격 준비!'}</small></div>}
       </div>

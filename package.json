@@ -1,6 +1,6 @@
 {
   "name": "utang-baseball",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -9,6 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
+    "assets:build": "node scripts/build-v030-assets.mjs",
     "lint": "oxlint app lib",
     "format": "oxfmt",
     "typecheck": "tsc --noEmit",
