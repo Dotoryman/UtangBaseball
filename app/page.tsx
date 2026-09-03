@@ -3,7 +3,7 @@
 /* oxlint-disable next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCcw, Trophy } from 'lucide-react';
+import { Copy, Flame, RotateCcw, Share2, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -26,9 +26,9 @@ type RecordItem = {
 
 const TOTAL_PITCHES = 10;
 const PITCHES: Array<{ type: PitchType; duration: number }> = [
-  { type: '직구', duration: 1120 },
-  { type: '커브', duration: 1480 },
-  { type: '체인지업', duration: 1760 },
+  { type: '직구', duration: 1280 },
+  { type: '커브', duration: 1620 },
+  { type: '체인지업', duration: 1950 },
 ];
 function loadRecords(): RecordItem[] {
   if (typeof window === 'undefined') return [];
@@ -40,11 +40,11 @@ function loadRecords(): RecordItem[] {
 }
 
 const POSE_BY_JUDGMENT: Record<Judgment, string> = {
-  MISS: '/utang-pose-miss.png',
-  FOUL: '/utang-pose-foul.png',
-  GOOD: '/utang-pose-good.png',
-  PERFECT: '/utang-pose-good.png',
-  'HOME RUN': '/utang-pose-home-run.png',
+  MISS: '/utang-pose-miss-v2-cutout.png',
+  FOUL: '/utang-pose-foul-cutout.png',
+  GOOD: '/utang-pose-good-cutout.png',
+  PERFECT: '/utang-pose-good-cutout.png',
+  'HOME RUN': '/utang-pose-home-run-cutout.png',
 };
 
 export default function Home() {
@@ -61,6 +61,7 @@ export default function Home() {
   const [isSwinging, setIsSwinging] = useState(false);
   const [ballFlying, setBallFlying] = useState(false);
   const [records, setRecords] = useState<RecordItem[]>([]);
+  const [shareNotice, setShareNotice] = useState('');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -190,22 +191,22 @@ export default function Home() {
     let distance = 0,
       basePoints = 0;
     let keepsCombo = true;
-    if (error <= 0.035) {
+    if (error <= 0.055) {
       result = 'HOME RUN';
       distance = Math.round(118 + Math.random() * 32);
       basePoints = 4500 + distance * 10;
-    } else if (error <= 0.075) {
+    } else if (error <= 0.105) {
       result = Math.random() > 0.62 ? 'HOME RUN' : 'PERFECT';
       distance =
         result === 'HOME RUN'
           ? Math.round(105 + Math.random() * 28)
           : Math.round(82 + Math.random() * 24);
       basePoints = (result === 'HOME RUN' ? 3000 : 2500) + distance * 10;
-    } else if (error <= 0.13) {
+    } else if (error <= 0.175) {
       result = 'GOOD';
       distance = Math.round(35 + Math.random() * 55);
       basePoints = 1000 + distance * 10;
-    } else if (error <= 0.19) {
+    } else if (error <= 0.245) {
       result = 'FOUL';
       basePoints = 150;
     } else {
@@ -282,16 +283,44 @@ export default function Home() {
             : '야구공 구경 온 우땅이';
   const batterImage = judgment
     ? POSE_BY_JUDGMENT[judgment]
-    : '/utang-batter-clean.png';
+    : '/utang-batter-clean-cutout.png';
   const batterPose = judgment
     ? judgment.replace(' ', '-').toLowerCase()
     : 'ready';
   const resultImage =
     homeRuns > 0
-      ? '/utang-pose-home-run.png'
+      ? '/utang-pose-home-run-cutout.png'
       : score >= 5000
-        ? '/utang-pose-good.png'
-        : '/utang-pose-miss.png';
+        ? '/utang-pose-good-cutout.png'
+        : '/utang-pose-miss-v2-cutout.png';
+
+  const shareScore = useCallback(async () => {
+    const shareText = `우땅야구에서 ${score.toLocaleString()}점! 홈런 ${homeRuns}개, 최고 비거리 ${maxDistance}m ⚾`;
+    const shareData = {
+      title: '우땅야구 기록',
+      text: shareText,
+      url: window.location.origin,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareNotice('공유했어!');
+      } else {
+        await navigator.clipboard.writeText(
+          `${shareText}\n${window.location.origin}`,
+        );
+        setShareNotice('기록과 링크를 복사했어!');
+      }
+    } catch (error) {
+      if ((error as DOMException).name !== 'AbortError') {
+        await navigator.clipboard.writeText(
+          `${shareText}\n${window.location.origin}`,
+        );
+        setShareNotice('기록과 링크를 복사했어!');
+      }
+    }
+    window.setTimeout(() => setShareNotice(''), 2200);
+  }, [homeRuns, maxDistance, score]);
 
   return (
     <main className="game-shell">
@@ -343,15 +372,28 @@ export default function Home() {
                 경기 시작
               </Button>
             </form>
-            {records.length > 0 && (
-              <div className="mini-ranking">
+            <div className="intro-ranking">
+              <div className="intro-ranking-head">
                 <div className="ranking-title">
-                  <Trophy size={15} /> 이 기기의 우땅왕
+                  <Trophy size={15} /> 우땅왕 랭킹
                 </div>
-                <strong>{records[0].nickname}</strong>
-                <span>{records[0].score.toLocaleString()}점</span>
+                <span>TOP 5</span>
               </div>
-            )}
+              {records.length > 0 ? (
+                records.slice(0, 5).map((item, index) => (
+                  <div
+                    className="ranking-row"
+                    key={`${item.playedAt}-${index}`}
+                  >
+                    <b>{index + 1}</b>
+                    <span>{item.nickname}</span>
+                    <strong>{item.score.toLocaleString()}점</strong>
+                  </div>
+                ))
+              ) : (
+                <p className="ranking-empty">첫 우땅왕이 되어봐!</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -363,20 +405,28 @@ export default function Home() {
             aria-label="화면을 눌러 타격"
           >
             <div className="status-row">
-              <div className="pitch-count">
-                <strong>{pitchNumber}</strong>
-                <span>/ {TOTAL_PITCHES}구</span>
+              <div className="inning-card">
+                <span>9회말</span>
+                <b>UTANG</b>
               </div>
-              <div className="pitch-dots" aria-hidden="true">
-                {Array.from({ length: TOTAL_PITCHES }, (_, index) => (
-                  <i
-                    key={index}
-                    className={index < pitchNumber ? 'active' : ''}
-                  />
-                ))}
+              <div className="pitch-progress">
+                <div className="pitch-count">
+                  <span>PITCH</span>
+                  <strong>{String(pitchNumber).padStart(2, '0')}</strong>
+                  <small>/ {TOTAL_PITCHES}</small>
+                </div>
+                <div className="pitch-dots" aria-hidden="true">
+                  {Array.from({ length: TOTAL_PITCHES }, (_, index) => (
+                    <i
+                      key={index}
+                      className={index < pitchNumber ? 'active' : ''}
+                    />
+                  ))}
+                </div>
               </div>
               <div className="combo">
-                COMBO <strong>×{Math.max(combo, 1)}</strong>
+                <Flame size={14} /> <span>COMBO</span>
+                <strong>×{Math.max(combo, 1)}</strong>
               </div>
             </div>
             <div className="stadium">
@@ -388,7 +438,7 @@ export default function Home() {
               </div>
               <div className="stands">
                 <img
-                  src="/utang-crowd-strip.png"
+                  src="/utang-crowd-stadium.png"
                   alt="응원하는 우땅이 관중들"
                   className="crowd-strip"
                 />
@@ -396,9 +446,10 @@ export default function Home() {
               <div className="field-grass" />
               <div className="infield" />
               <div className="pitcher-mound" />
+              <div className="pitch-lane" aria-hidden="true" />
               <div className="home-plate" />
               <img
-                src="/utang-pitcher.png"
+                src="/utang-pitcher-cutout-v2.png"
                 alt="투구하는 우땅이"
                 className="pitcher"
               />
@@ -412,10 +463,29 @@ export default function Home() {
                     } as React.CSSProperties
                   }
                 >
-                  ⚾
+                  <img src="/baseball-official.png" alt="" />
                 </div>
               )}
-              {ballFlying && <div className="flying-ball">⚾</div>}
+              {ballFlying && (
+                <div className="flying-ball">
+                  <img src="/baseball-official.png" alt="" />
+                </div>
+              )}
+              <div
+                className={`abs-zone ${pitch && !judgment ? 'live' : ''}`}
+                aria-hidden="true"
+              >
+                <span>ABS</span>
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
               <div
                 className={`batter-shadow ${isSwinging ? 'swinging' : ''}`}
               />
@@ -492,6 +562,10 @@ export default function Home() {
             </div>
             <Button className="start-button" onClick={() => startGame()}>
               <RotateCcw size={17} /> 다시 도전
+            </Button>
+            <Button className="share-button" onClick={shareScore}>
+              {shareNotice ? <Copy size={17} /> : <Share2 size={17} />}
+              {shareNotice || '점수 공유하기'}
             </Button>
             <Button
               variant="ghost"
