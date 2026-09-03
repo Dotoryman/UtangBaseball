@@ -21,4 +21,4 @@
 
 ## 도메인
 
-`utangbaseball.cloud`는 구매 완료된 공식 도메인 후보입니다. 현재 릴리스에서는 연결하지 않으며, 소유자가 배포 후 별도로 요청할 때 Workers 커스텀 도메인으로 연결합니다.
+공식 서비스 주소는 `https://utangbaseball.cloud`이며 Cloudflare Workers 커스텀 도메인으로 연결되어 있습니다.

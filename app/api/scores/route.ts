@@ -9,16 +9,14 @@ type ScoreRow = {
 };
 
 function sinceFor(period: string) {
-  const now = new Date();
+  const kstOffset = 9 * 60 * 60 * 1000;
+  const now = new Date(Date.now() + kstOffset);
   if (period === 'daily') {
-    now.setHours(0, 0, 0, 0);
-    return now.getTime();
+    return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - kstOffset;
   }
   if (period === 'weekly') {
-    const day = (now.getDay() + 6) % 7;
-    now.setDate(now.getDate() - day);
-    now.setHours(0, 0, 0, 0);
-    return now.getTime();
+    const day = (now.getUTCDay() + 6) % 7;
+    return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - day) - kstOffset;
   }
   return 0;
 }
@@ -92,7 +90,7 @@ export async function POST(request: Request) {
       .run();
 
     return Response.json(
-      { records: await leaderboard('all') },
+      { records: await leaderboard('daily') },
       { status: 201 },
     );
   } catch {
