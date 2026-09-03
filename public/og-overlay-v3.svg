@@ -1,0 +1,11 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .ko { font-family: "Malgun Gothic", Arial, sans-serif; font-weight: 900; }
+    .en { font-family: Arial, sans-serif; font-weight: 800; letter-spacing: 2px; }
+  </style>
+  <text x="360" y="190" class="en" font-size="22" fill="#ffcf45">UTANG BASEBALL</text>
+  <text x="92" y="285" class="ko" font-size="72" fill="#ffffff">우땅야구</text>
+  <text x="95" y="340" class="ko" font-size="27" fill="#c9dcff">10구 타격 게임 · 오늘의 우땅왕에 도전!</text>
+  <line x1="95" y1="380" x2="690" y2="380" stroke="#ffffff" stroke-opacity=".2" stroke-width="2" />
+  <text x="95" y="442" class="ko" font-size="24" fill="#ffcf45">utangbaseball.cloud</text>
+</svg>
