@@ -9,6 +9,12 @@
     "binding": "ASSETS",
   },
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "utangbaseball.cloud",
+      "custom_domain": true,
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",
