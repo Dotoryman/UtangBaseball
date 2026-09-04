@@ -1589,3 +1589,103 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .sticker-bubble, .countdown-mascot-glow, .countdown-card > strong { animation: none; }
 }
+
+/* v0.7.1: tight character cutouts and calmer, better-proportioned sticker staging. */
+.sticker-bubble {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  filter: drop-shadow(0 6px 5px rgb(76 48 29 / 16%));
+}
+.sticker-bubble img { width: 100%; height: 100%; }
+.sticker-wave { left: 2px; top: 32px; width: 76px; height: 76px; }
+.sticker-chill { right: -1px; top: 39px; width: 90px; height: 66px; }
+.sticker-ball { right: 10px; bottom: 0; width: 58px; height: 88px; }
+.sticker-sun {
+  left: 13px;
+  bottom: 10px;
+  width: 51px;
+  height: 51px;
+  filter: drop-shadow(0 5px 5px rgb(76 48 29 / 13%));
+}
+
+.countdown-card {
+  min-height: 444px;
+  padding-top: 34px;
+}
+.countdown-card::before,
+.countdown-card::after { display: none; }
+.countdown-friend {
+  filter: drop-shadow(0 7px 6px rgb(59 36 23 / 23%));
+}
+.countdown-friend-left {
+  left: -20px;
+  bottom: 72px;
+  width: 76px;
+  height: 76px;
+}
+.countdown-friend-right {
+  right: -24px;
+  top: 82px;
+  width: 91px;
+  height: 67px;
+}
+.countdown-mascot {
+  width: 158px;
+  height: 158px;
+  margin-top: 11px;
+}
+.countdown-mascot-glow {
+  inset: 14px 6px 9px !important;
+  border-radius: 48% 52% 44% 56% !important;
+  background: rgb(235 179 70 / 23%) !important;
+  transform: rotate(-4deg);
+}
+.countdown-mascot img {
+  width: 140px;
+  height: 154px;
+  filter: drop-shadow(0 8px 5px rgb(75 42 25 / 19%));
+}
+.countdown-card > small { margin-top: -2px; }
+.countdown-card > strong { margin-top: 3px; font-size: 88px; }
+.countdown-dots { margin-top: 16px; }
+
+.batter-result-miss .batter-reaction {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  transform-origin: 48% 92%;
+}
+
+.result-emote {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 6px 5px rgb(74 42 25 / 15%));
+}
+.result-emote img { width: 100%; height: 100%; }
+.result-emote-wave { left: 13px; top: 30px; width: 70px; height: 70px; }
+.result-emote-chill { right: 2px; top: 26px; width: 86px; height: 63px; }
+.result-emote-ball { left: 18px; top: 178px; width: 54px; height: 82px; }
+.result-emote-sun { right: 16px; top: 182px; width: 49px; height: 49px; }
+.result-character { width: 214px; height: 190px; }
+.result-image { width: 194px; height: 190px; }
+.result-image-miss { transform: scale(1.04); }
+
+@media (max-height: 760px) {
+  .sticker-wave { width: 67px; height: 67px; top: 27px; }
+  .sticker-chill { width: 79px; height: 58px; top: 30px; }
+  .sticker-ball { width: 51px; height: 77px; }
+  .sticker-sun { width: 46px; height: 46px; }
+  .countdown-card { min-height: 390px; padding-top: 30px; }
+  .countdown-mascot { width: 128px; height: 128px; margin-top: 7px; }
+  .countdown-mascot img { width: 114px; height: 125px; }
+  .countdown-card > strong { font-size: 76px; }
+  .countdown-friend-left { width: 66px; height: 66px; bottom: 62px; }
+  .countdown-friend-right { width: 78px; height: 57px; top: 72px; }
+  .result-emote-ball, .result-emote-sun { display: block; }
+}
