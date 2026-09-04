@@ -377,6 +377,32 @@ button { -webkit-tap-highlight-color: transparent; }
   .result-panel .ranking-card { margin-top: 7px; }
 }
 
+.share-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 20%, #fff4bd 0 18%, transparent 48%), linear-gradient(160deg, #fffaf0, #eef7f3);
+  color: var(--ink);
+}
+.share-summary {
+  width: min(100%, 410px);
+  padding: 30px 24px 26px;
+  text-align: center;
+  background: rgb(255 255 255 / 88%);
+  border: 2px solid rgb(22 79 147 / 16%);
+  border-radius: 28px;
+  box-shadow: 0 18px 50px rgb(29 54 85 / 14%);
+}
+.share-summary > img { width: 92px; height: 92px; border-radius: 50%; box-shadow: 3px 4px 0 #ffc941; }
+.share-summary > p { margin-top: 16px; font-weight: 900; }
+.share-summary h1 { margin: 8px 0 20px; color: #164f93; font-size: 52px; line-height: 1; }
+.share-summary h1 small { margin-left: 4px; font-size: 18px; }
+.share-summary > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.share-summary > div span { padding: 11px 4px; color: #6d7c91; font-size: 10px; font-weight: 800; background: #f4f7fb; border-radius: 12px; }
+.share-summary > div b { display: block; margin-top: 4px; color: var(--ink); font-size: 15px; }
+.share-summary > a { display: grid; place-items: center; height: 52px; margin-top: 20px; color: white; font-weight: 950; text-decoration: none; background: linear-gradient(#ff7168, #f24e49); border-radius: 15px; box-shadow: 0 5px 0 #b52f2a; }
+
 @media (min-width: 431px) {
   .phone-stage { border-radius: 24px; height: min(100dvh, 900px); }
 }
@@ -645,4 +671,130 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .hero-sprite { animation: none; background-position: 0 0; }
   .batter-visual { animation: none !important; }
+}
+
+/* v0.4.0: compact intro, paged ranking, catch sequence, and field alignment */
+.brand-home {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.intro-brand strong {
+  font-family: 'Arial Rounded MT Bold', 'Segoe Print', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -1.8px;
+  text-shadow: 1px 2px 0 rgb(244 185 47 / 46%);
+  transform: rotate(-1deg);
+}
+.brand-home:focus-visible { outline: 3px solid #efb82e; outline-offset: 5px; border-radius: 12px; }
+.brand-home:active { transform: translateY(1px) scale(.99); }
+
+.intro-scene { height: 258px; }
+.intro-halo { width: 232px; height: 232px; top: 4px; }
+.hero-sprite { width: 278px; height: 250px; }
+.intro-scene::after { bottom: 10px; }
+.intro-copy { margin-top: 0; }
+.intro-copy h1 { font-size: clamp(29px, 7.7vw, 34px); line-height: 1.08; }
+.intro-copy p, .intro-copy > p:last-child { margin-top: 7px; }
+.nickname-form {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 14px;
+}
+.nickname-input, .nickname-form .start-button { width: 100%; height: 50px !important; }
+.nickname-form .start-button { font-size: 15px; letter-spacing: 1px; }
+.intro-ranking { margin-top: 13px; padding: 13px 15px 11px; }
+.ranking-row { min-height: 31px; }
+.ranking-pagination {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  padding-top: 8px;
+  border-top: 1px dashed rgb(29 54 85 / 15%);
+}
+.ranking-pagination button {
+  width: 34px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #164f93;
+  background: #edf3fb;
+  border: 1px solid rgb(22 79 147 / 16%);
+  border-radius: 9px;
+}
+.ranking-pagination button:disabled { opacity: .32; }
+.ranking-pagination span { text-align: center; color: #6f7d90; font-size: 10px; font-weight: 900; }
+
+.game-hud {
+  height: 66px;
+  grid-template-columns: 40px 78px minmax(0, 1fr) 88px;
+  gap: 7px;
+  padding: 8px;
+}
+.hud-home { width: 38px; height: 50px; }
+.hud-score small { font-size: 8px; letter-spacing: 1.1px; }
+.hud-score strong { margin-top: 3px; font-size: 16px; }
+.hud-pitches > span { font-size: 21px; }
+.hud-pitches > span small { font-size: 10px; }
+.hud-pitches > div { gap: 3px; margin-top: 8px; }
+.hud-pitches i { height: 5px; }
+.combo { height: 50px; grid-template-columns: 20px 1fr; grid-template-rows: 17px 21px; gap: 0 4px; padding: 6px 8px; }
+.combo svg { width: 19px; height: 19px; }
+.combo span { font-size: 7px; letter-spacing: .7px; }
+.combo strong { font-size: 18px; }
+
+.pitcher { top: 43.2%; }
+.catcher { width: 130px; height: 130px; bottom: .5%; }
+.catcher-catch, .catcher-reaction { width: 134px; height: 134px; }
+.abs-zone { top: 81.2%; }
+.batter { width: 218px; height: 196px; left: -23px; bottom: 1.2%; }
+.batter-shadow { width: 139px; left: 10px; }
+.batter-result-miss .batter-reaction { width: 188px; height: 188px; inset: 7px auto auto 11px; }
+
+.countdown-overlay { gap: 3px; background: rgb(3 18 45 / 78%); }
+.countdown-overlay::before { width: 246px; height: 246px; border-color: rgb(255 255 255 / 25%); box-shadow: 0 0 0 13px rgb(255 201 65 / 11%), 0 18px 55px rgb(0 0 0 / 25%); }
+.countdown-overlay > img {
+  position: relative;
+  z-index: 1;
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 3px 4px 0 #ffc941;
+}
+.countdown-overlay span { margin-top: 6px; }
+.countdown-overlay strong { margin: 2px 0 0; font-size: 76px; line-height: .95; text-shadow: 4px 4px 0 var(--coral); }
+.countdown-overlay small { margin-top: 2px; font-size: 12px; }
+
+.result-character { width: 194px; height: 178px; margin-top: -1px; }
+.result-image { width: 178px; height: 178px; }
+.result-burst { width: 170px; height: 170px; left: 12px; top: 3px; }
+
+@media (max-height: 760px) {
+  .intro-scene { height: 205px; }
+  .intro-halo { width: 188px; height: 188px; }
+  .hero-sprite { width: 226px; height: 203px; }
+  .intro-copy h1 { font-size: 27px; }
+  .nickname-form { margin-top: 9px; gap: 7px; }
+  .nickname-input, .nickname-form .start-button { height: 45px !important; }
+  .intro-ranking { margin-top: 9px; }
+  .ranking-row { min-height: 28px; }
+  .game-hud { height: 60px; grid-template-columns: 36px 68px minmax(0, 1fr) 78px; gap: 5px; padding: 6px; }
+  .hud-home { width: 34px; height: 46px; }
+  .combo { height: 46px; padding-inline: 6px; }
+  .pitcher { top: 43%; }
+  .catcher { width: 116px; height: 116px; }
+  .catcher-catch, .catcher-reaction { width: 120px; height: 120px; }
+  .batter { width: 198px; height: 179px; left: -24px; }
+  .countdown-overlay::before { width: 220px; height: 220px; }
+  .countdown-overlay > img { width: 66px; height: 66px; }
+  .countdown-overlay strong { font-size: 66px; }
 }

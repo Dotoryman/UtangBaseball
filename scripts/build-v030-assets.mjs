@@ -54,7 +54,7 @@ async function buildShareCards() {
       <text x="105" y="252" class="ko" font-size="66" font-weight="900" fill="#ffffff">우땅야구</text>
       <text x="108" y="307" class="ko" font-size="27" font-weight="700" fill="#c7ddfa">10개의 공으로 오늘의 우땅왕에 도전!</text>
       <line x1="105" y1="360" x2="735" y2="360" stroke="#ffffff" stroke-opacity=".2" stroke-width="2"/>
-      <text x="105" y="431" class="ko" font-size="30" font-weight="800" fill="#ffffff">딱 맞는 순간, 날려버려!</text>
+      <text x="105" y="431" class="ko" font-size="30" font-weight="800" fill="#ffffff">우땅이랑 같이, 한 방 날려볼까?</text>
       <text x="105" y="515" class="en" font-size="24" font-weight="800" fill="#ffcf45">utangbaseball.cloud</text>
     </svg>
   `);
@@ -110,4 +110,4 @@ async function extractPitcherFollow() {
 }
 
 await Promise.all([buildBatterStrip(), buildShareCards(), extractPitcherFollow()]);
-console.log('Built v0.3.0 image assets.');
+console.log('Built v0.4.0 image assets.');

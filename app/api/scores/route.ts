@@ -28,7 +28,7 @@ async function leaderboard(period = 'all') {
      FROM scores
      WHERE played_at >= ?
      ORDER BY score DESC, played_at ASC
-     LIMIT 10`,
+     LIMIT 50`,
   )
     .bind(since)
     .all<ScoreRow>();
