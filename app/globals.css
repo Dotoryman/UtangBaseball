@@ -1108,3 +1108,170 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .countdown-card > strong { animation: none; }
 }
+
+/* v0.6.0: Utang-first warm lobby/result theme and single-texture sprites. */
+:root {
+  --ink: #4a2e22;
+  --blue: #8c5938;
+  --deep-blue: #4a2e22;
+  --yellow: #d7a83c;
+  --coral: #c96e4b;
+  --cream: #f5e8d0;
+  --line: #d7b992;
+}
+
+body {
+  background-color: #3d281f;
+  background-image:
+    radial-gradient(circle at 18% 16%, rgb(217 168 105 / 18%), transparent 31%),
+    radial-gradient(circle at 82% 78%, rgb(201 110 75 / 13%), transparent 28%),
+    repeating-linear-gradient(135deg, rgb(255 246 226 / 2%) 0 2px, transparent 2px 13px);
+}
+.phone-stage { background: #f5e8d0; box-shadow: 0 28px 90px rgb(37 20 13 / 48%); }
+
+/* The field artwork and its geometry intentionally remain unchanged. */
+.intro-panel {
+  background:
+    radial-gradient(circle at 50% 21%, rgb(245 195 105 / 47%) 0 12%, transparent 33%),
+    radial-gradient(circle at 12% 74%, rgb(201 110 75 / 10%), transparent 28%),
+    linear-gradient(180deg, #fbf3e4 0 55%, #f1dfc5 100%);
+}
+.intro-panel::before {
+  top: 158px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 28px, rgb(255 250 237 / 21%) 29px 31px),
+    linear-gradient(180deg, #b97843 0 27%, #8d5738 28% 43%, #e7cba7 44% 49%, transparent 50%);
+  opacity: .12;
+}
+.intro-panel::after { background: radial-gradient(ellipse at center, rgb(126 105 62 / 12%), transparent 68%); }
+.intro-brand img { border-color: #69412d; box-shadow: 2px 2px 0 #d7a83c; }
+.intro-brand strong {
+  color: #4a2e22;
+  text-shadow: 1px 2px 0 rgb(215 168 60 / 38%);
+}
+.help-button {
+  color: #70472f;
+  background: rgb(255 250 238 / 82%);
+  border-color: rgb(91 55 37 / 17%);
+  box-shadow: 0 5px 15px rgb(83 48 28 / 10%);
+}
+.intro-halo {
+  background:
+    radial-gradient(circle, #f5d88f 0 39%, rgb(225 177 91 / 36%) 40% 55%, transparent 56%),
+    conic-gradient(from 8deg, transparent 0 6deg, rgb(194 126 70 / 18%) 6deg 11deg, transparent 11deg 22deg);
+  filter: drop-shadow(0 12px 24px rgb(135 77 37 / 13%));
+}
+.intro-halo::after { border-color: rgb(104 63 39 / 17%); }
+.intro-copy h1 { color: #4a2e22; }
+.intro-copy h1 em { color: #b75d3d; }
+.intro-copy p, .intro-copy > p:last-child { color: #795f4f; }
+.hero-spark { color: #b97843; }
+.spark-two { color: #d29b2f; }
+.intro-emote {
+  position: absolute;
+  z-index: 2;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 5px rgb(74 46 34 / 14%));
+  pointer-events: none;
+}
+.intro-emote-left { left: -4px; top: 42px; transform: rotate(-9deg); }
+.intro-emote-right { right: 2px; top: 139px; width: 50px; height: 50px; transform: rotate(8deg); }
+.intro-emote-right,
+.result-emotes img:last-child { border-radius: 50%; }
+.nickname-input {
+  color: #4a2e22 !important;
+  border-color: rgb(100 61 40 / 17%) !important;
+  background: rgb(255 252 244 / 92%) !important;
+  box-shadow: inset 0 1px 0 white, 0 10px 24px rgb(88 54 34 / 9%) !important;
+}
+.nickname-input:focus { border-color: #b97843 !important; }
+.start-button {
+  color: #fffaf0 !important;
+  border-color: rgb(255 246 226 / 25%) !important;
+  background: linear-gradient(135deg, #c97851 0%, #ad5c3e 56%, #82452f 100%) !important;
+  box-shadow: 0 10px 22px rgb(112 59 38 / 24%), inset 0 1px 0 rgb(255 255 255 / 27%) !important;
+}
+.start-button:active { box-shadow: 0 5px 12px rgb(112 59 38 / 22%) !important; }
+.intro-ranking {
+  color: #4a2e22;
+  border-color: rgb(101 62 40 / 12%);
+  background: rgb(255 251 242 / 84%);
+  box-shadow: 0 16px 38px rgb(91 55 34 / 10%), inset 0 1px 0 white;
+}
+.intro-ranking-head > span { color: #8a705f; background: #f3e5cf; }
+.ranking-row { border-top-color: rgb(91 55 36 / 14%); }
+.ranking-row strong { color: #8a4e31; }
+.ranking-row b { color: #765c4b; background: #f0e1cd; }
+.ranking-pagination { border-top-color: rgb(91 55 36 / 15%); }
+.ranking-pagination button { color: #8a4e31; background: #f3e4cf; border-color: rgb(119 72 45 / 16%); }
+.ranking-pagination span, .intro-footer { color: rgb(91 59 42 / 54%); }
+.help-overlay { background: rgb(62 38 28 / 68%); }
+.help-card { background: #fff8e9; box-shadow: 0 24px 70px rgb(43 25 17 / 30%); }
+.help-card h2 { color: #4a2e22; }
+.help-card ol { color: #765e4d; }
+
+/* A single decoded PNG texture per actor prevents frame-level alpha flashes. */
+.pitcher-sprite,
+.catcher-sprite,
+.batter-sprite-v6 {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  contain: strict;
+  pointer-events: none;
+}
+.pitcher-sprite { background-image: url('/utang-pitcher-v6-strip.png'); background-size: 200% 100%; }
+.catcher-sprite { background-image: url('/utang-catcher-v6-strip.png'); background-size: 200% 100%; }
+.batter-sprite-v6 { background-image: url('/utang-batter-v8-strip.png'); background-size: 800% 100%; }
+.batter-followThrough:has(.batter-reaction) .batter-sprite-v6 { opacity: 0; }
+
+.result-panel {
+  color: #4a2e22;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(229 180 92 / 38%) 0 13%, transparent 35%),
+    radial-gradient(circle at 12% 58%, rgb(201 110 75 / 12%), transparent 30%),
+    linear-gradient(160deg, #fbf2e1 0%, #efd8b8 54%, #e3c39d 100%);
+}
+.result-panel::before {
+  background:
+    repeating-radial-gradient(circle at 50% 12%, transparent 0 26px, rgb(94 57 37 / 3%) 27px 28px),
+    linear-gradient(135deg, transparent 0 48%, rgb(255 255 255 / 9%) 49% 51%, transparent 52%);
+}
+.result-panel .intro-brand strong { color: #4a2e22; text-shadow: 1px 2px 0 rgb(215 168 60 / 38%); }
+.result-panel > .badge { color: #fff9ed; background: #a75a3c; box-shadow: 0 6px 18px rgb(91 49 31 / 18%); }
+.result-panel h2 { color: #4a2e22; text-shadow: 0 3px 0 rgb(255 255 255 / 42%); }
+.result-grade { color: #4a2e22; background: #e6bc61; box-shadow: 0 7px 18px rgb(95 57 34 / 16%); }
+.result-burst { background: repeating-conic-gradient(#c96e4b 0 7deg, transparent 7deg 15deg); }
+.result-burst::after { background: #f9e8bd; }
+.result-stats,
+.result-panel .ranking-card {
+  color: #4a2e22;
+  background: rgb(255 251 241 / 92%);
+  border-color: rgb(104 63 40 / 13%);
+  box-shadow: 0 14px 34px rgb(83 48 29 / 15%), inset 0 1px 0 white;
+}
+.result-stats span { color: #8b7463; }
+.result-stats strong, .result-rank strong { color: #955233; }
+.result-rank { color: #725746; }
+.result-emotes { position: absolute; z-index: 0; inset: 72px 0 auto; pointer-events: none; }
+.result-panel > :not(.result-emotes) { position: relative; z-index: 1; }
+.result-emotes img { position: absolute; width: 58px; height: 58px; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(74 46 34 / 12%)); }
+.result-emotes img:first-child { left: 20px; top: 35px; transform: rotate(-10deg); }
+.result-emotes img:last-child { right: 19px; top: 114px; width: 48px; height: 48px; transform: rotate(9deg); }
+.home-button { color: #5a3827 !important; background: rgb(255 250 238 / 47%) !important; border-color: rgb(91 55 36 / 21%) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / 55%) !important; }
+
+.share-page {
+  color: #4a2e22;
+  background: radial-gradient(circle at 50% 20%, #f6d993 0 18%, transparent 48%), linear-gradient(160deg, #fff8e9, #ead3b4);
+}
+.share-summary { background: rgb(255 251 242 / 91%); border-color: rgb(104 63 40 / 14%); box-shadow: 0 18px 50px rgb(82 48 29 / 15%); }
+.share-summary h1 { color: #955233; }
+.share-summary > div span { color: #826b5b; background: #f3e4cf; }
+.share-summary > a { background: linear-gradient(#c97851, #a95639); box-shadow: 0 5px 0 #713a29; }

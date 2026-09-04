@@ -26,7 +26,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const result = details(await searchParams);
   const title = `${result.nickname}의 우땅야구 ${result.score.toLocaleString('ko-KR')}점!`;
   const description = `홈런 ${result.homeRuns}개 · 최고 비거리 ${result.distance}m · 최고 콤보 ×${result.combo}`;
-  const image = /^[0-9a-f-]{32,36}$/i.test(result.card) ? `/api/share-card?id=${encodeURIComponent(result.card)}` : '/og-utangbaseball-v4.png';
+  const image = /^[0-9a-f-]{32,36}$/i.test(result.card) ? `/api/share-card?id=${encodeURIComponent(result.card)}` : '/og-utangbaseball-v6.png';
   return {
     title,
     description,
