@@ -14,6 +14,10 @@
       "pattern": "utangbaseball.cloud",
       "custom_domain": true,
     },
+    {
+      "pattern": "www.utangbaseball.cloud",
+      "custom_domain": true,
+    },
   ],
   "d1_databases": [
     {

@@ -27,7 +27,9 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
-      vinext(),
+      // Serve ordinary page visits from pre-rendered Cloudflare Assets so the
+      // Worker CPU budget remains available for dynamic API routes.
+      vinext({ prerender: { routes: '*' } }),
       cloudflare({
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
         config: localBindingConfig,
