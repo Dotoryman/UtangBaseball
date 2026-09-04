@@ -109,5 +109,12 @@ async function extractPitcherFollow() {
     .toFile('public/utang-pitcher-follow-v2.png');
 }
 
-await Promise.all([buildBatterStrip(), buildShareCards(), extractPitcherFollow()]);
-console.log('Built v0.4.0 image assets.');
+async function buildStadiumV5() {
+  await sharp('assets/source/utang-stadium-v5-source.png')
+    .resize(1024, 1536, { fit: 'fill' })
+    .webp({ quality: 90, effort: 6, smartSubsample: true })
+    .toFile('public/utang-stadium-v5.webp');
+}
+
+await Promise.all([buildBatterStrip(), buildShareCards(), extractPitcherFollow(), buildStadiumV5()]);
+console.log('Built v0.5.0 image assets.');

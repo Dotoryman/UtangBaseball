@@ -576,7 +576,10 @@ button { -webkit-tap-highlight-color: transparent; }
 /* v0.3.0: stable sprite playback and field-coordinate alignment */
 .hero-sprite {
   background: url('/utang-batter-v8-strip.webp') 0 0 / 800% 100% no-repeat;
-  animation: hero-strip-v30 2.6s steps(1, end) infinite;
+  animation: hero-strip-v30 3.1s steps(1, end) infinite;
+  backface-visibility: hidden;
+  transform: translateX(-50%) translateZ(0);
+  will-change: background-position;
 }
 
 .batter-visual {
@@ -621,15 +624,21 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 @keyframes hero-strip-v30 {
-  0%, 42% { background-position: 0% 0; }
-  46% { background-position: 14.2857% 0; }
-  50% { background-position: 28.5714% 0; }
-  54% { background-position: 42.8571% 0; }
-  58% { background-position: 57.1429% 0; }
-  62% { background-position: 71.4286% 0; }
-  66% { background-position: 85.7143% 0; }
-  70%, 84% { background-position: 100% 0; }
-  88%, 100% { background-position: 0% 0; }
+  0%, 38% { background-position: 0% 0; }
+  42% { background-position: 14.2857% 0; }
+  46% { background-position: 28.5714% 0; }
+  50% { background-position: 42.8571% 0; }
+  54% { background-position: 57.1429% 0; }
+  58% { background-position: 71.4286% 0; }
+  62% { background-position: 85.7143% 0; }
+  66%, 75% { background-position: 100% 0; }
+  78% { background-position: 85.7143% 0; }
+  81% { background-position: 71.4286% 0; }
+  84% { background-position: 57.1429% 0; }
+  87% { background-position: 42.8571% 0; }
+  90% { background-position: 28.5714% 0; }
+  93% { background-position: 14.2857% 0; }
+  96%, 100% { background-position: 0% 0; }
 }
 @keyframes batter-strip-swing-v30 {
   from { background-position: 14.2857% 0; }
@@ -797,4 +806,305 @@ button { -webkit-tap-highlight-color: transparent; }
   .countdown-overlay::before { width: 220px; height: 220px; }
   .countdown-overlay > img { width: 66px; height: 66px; }
   .countdown-overlay strong { font-size: 66px; }
+}
+
+/* v0.5.0: cohesive game scenes, field-perspective alignment, and modern controls */
+.intro-panel {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 24%, rgb(255 221 108 / 52%) 0 13%, transparent 35%),
+    linear-gradient(180deg, #dff2ff 0 31%, #fff8ea 31% 72%, #eef6ec 100%);
+}
+.intro-panel::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -18%;
+  right: -18%;
+  top: 166px;
+  height: 168px;
+  border-radius: 0 0 50% 50%;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0%) 0 26px, rgb(255 255 255 / 18%) 27px 29px),
+    linear-gradient(180deg, #164f93 0 28%, #0b3569 29% 44%, #f8e5bd 45% 49%, transparent 50%);
+  opacity: .14;
+  transform: perspective(360px) rotateX(-8deg);
+  pointer-events: none;
+}
+.intro-panel::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -30%;
+  right: -30%;
+  bottom: -135px;
+  height: 310px;
+  border-radius: 50% 50% 0 0;
+  background: radial-gradient(ellipse at center, rgb(76 145 91 / 18%), rgb(56 112 69 / 5%) 58%, transparent 70%);
+  pointer-events: none;
+}
+.intro-scene { overflow: visible; }
+.intro-halo {
+  background:
+    radial-gradient(circle, #ffe790 0 39%, rgb(255 220 105 / 45%) 40% 55%, transparent 56%),
+    conic-gradient(from 8deg, transparent 0 6deg, rgb(255 193 45 / 22%) 6deg 11deg, transparent 11deg 22deg);
+  filter: drop-shadow(0 12px 24px rgb(229 165 36 / 14%));
+}
+.intro-scene::after { bottom: 4px; background: rgb(36 72 48 / 16%); filter: blur(10px); }
+.nickname-input {
+  border-color: rgb(14 54 99 / 13%) !important;
+  background: rgb(255 255 255 / 92%) !important;
+  box-shadow: inset 0 1px 0 white, 0 10px 24px rgb(16 54 91 / 9%) !important;
+}
+.start-button {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 24%) !important;
+  background: linear-gradient(135deg, #1769c5 0%, #0c4d9a 56%, #07356f 100%) !important;
+  box-shadow: 0 10px 22px rgb(5 55 116 / 23%), inset 0 1px 0 rgb(255 255 255 / 28%) !important;
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.start-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 22%, rgb(255 255 255 / 17%) 45%, transparent 66%);
+  transform: translateX(-115%);
+  transition: transform .5s ease;
+}
+.start-button:hover::after { transform: translateX(115%); }
+.start-button:active { transform: translateY(2px) scale(.992); box-shadow: 0 5px 12px rgb(5 55 116 / 22%) !important; }
+.intro-ranking {
+  border-color: rgb(19 68 117 / 12%);
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 16px 38px rgb(20 60 96 / 10%), inset 0 1px 0 white;
+}
+.intro-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 13px 0 1px;
+  color: rgb(34 65 92 / 48%);
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .45px;
+}
+.intro-footer i { width: 2px; height: 2px; border-radius: 50%; background: currentColor; }
+
+.stadium-background { object-position: 50% 50%; }
+.stadium::after { box-shadow: inset 0 80px 70px rgb(2 35 72 / 7%), inset 0 -32px 38px rgb(48 27 5 / 10%); }
+.pitcher { left: 50%; top: 46.8%; width: 100px; height: 100px; }
+.pitcher-throw, .pitcher-followThrough { width: 106px; height: 106px; }
+.release-flash { left: 44.8%; top: 48.4%; }
+.pitch-guide {
+  left: 47.3%;
+  top: 48.5%;
+  height: 36.5%;
+  transform: rotate(-4deg);
+  opacity: .18;
+}
+.catcher { left: 50%; bottom: -.4%; width: 128px; height: 128px; }
+.catcher-catch, .catcher-reaction { width: 132px; height: 132px; }
+.abs-zone { left: 50%; top: 85.8%; width: 72px; height: 82px; }
+.batter { left: -7px; bottom: .4%; width: 214px; height: 193px; }
+.batter-shadow { left: 20px; bottom: 10px; width: 140px; }
+.flying-ball { left: 50%; top: 85.8%; }
+
+.countdown-overlay {
+  padding: 22px;
+  background: linear-gradient(180deg, rgb(2 18 42 / 62%), rgb(1 13 31 / 82%));
+  backdrop-filter: blur(7px) saturate(.8);
+}
+.countdown-overlay::before { display: none; }
+.countdown-card {
+  position: relative;
+  width: min(84%, 310px);
+  min-height: 388px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 24px 24px;
+  color: white;
+  background:
+    radial-gradient(circle at 50% 28%, rgb(255 214 76 / 18%), transparent 31%),
+    linear-gradient(155deg, rgb(18 73 139 / 94%), rgb(4 29 67 / 97%));
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 32px;
+  box-shadow: 0 25px 70px rgb(0 8 25 / 42%), inset 0 1px 0 rgb(255 255 255 / 22%);
+  overflow: hidden;
+}
+.countdown-card::before,
+.countdown-card::after {
+  content: '';
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 2px solid rgb(255 255 255 / 8%);
+  transform: rotate(45deg);
+  border-radius: 30px;
+}
+.countdown-card::before { left: -110px; bottom: -92px; }
+.countdown-card::after { right: -118px; top: -96px; }
+.countdown-kicker {
+  position: absolute !important;
+  top: 21px;
+  padding: 0 !important;
+  color: #9ec9ff !important;
+  background: transparent !important;
+  font-family: Arial, sans-serif;
+  font-size: 8px !important;
+  letter-spacing: 2.2px !important;
+}
+.countdown-card > img {
+  position: relative;
+  z-index: 1;
+  width: 76px;
+  height: 76px;
+  margin-top: 4px;
+  object-fit: cover;
+  border: 3px solid rgb(255 255 255 / 88%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 7px rgb(255 205 65 / 18%), 0 10px 30px rgb(0 15 40 / 34%);
+}
+.countdown-card > small {
+  position: relative;
+  z-index: 1;
+  margin-top: 17px;
+  color: #c9dcf5;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .8px;
+}
+.countdown-card > strong {
+  position: relative;
+  z-index: 1;
+  margin: 5px 0 0;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 104px;
+  line-height: .95;
+  letter-spacing: -7px;
+  text-shadow: 0 8px 0 rgb(2 26 62 / 34%);
+  animation: countdown-v5 .7s cubic-bezier(.18,.88,.3,1.12) both;
+}
+.countdown-card > b { position: relative; z-index: 1; margin-top: 4px; color: #ffda5f; font-size: 15px; letter-spacing: .3px; }
+.countdown-dots { position: relative; z-index: 1; display: flex; gap: 8px; margin-top: 22px; }
+.countdown-dots i { width: 28px; height: 4px; border-radius: 99px; background: rgb(255 255 255 / 18%); }
+.countdown-dots i.active { background: #ffcf45; box-shadow: 0 0 10px rgb(255 207 69 / 55%); }
+
+.result-panel {
+  isolation: isolate;
+  color: white;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(255 207 70 / 25%) 0 13%, transparent 35%),
+    radial-gradient(circle at 12% 58%, rgb(31 113 203 / 28%), transparent 30%),
+    linear-gradient(160deg, #0b3d78 0%, #061f48 52%, #03152f 100%);
+}
+.result-panel::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: repeating-radial-gradient(circle at 50% 12%, transparent 0 26px, rgb(255 255 255 / 2%) 27px 28px);
+  pointer-events: none;
+}
+.result-panel .intro-brand strong { color: white; text-shadow: 1px 2px 0 rgb(0 0 0 / 24%); }
+.result-panel > .badge { background: #ffcf45; color: #082a58; border: 0; box-shadow: 0 6px 20px rgb(0 0 0 / 18%); }
+.result-panel h2 { color: white; text-shadow: 0 4px 18px rgb(0 0 0 / 22%); }
+.result-grade { color: #092b59; background: #ffcf45; box-shadow: 0 7px 18px rgb(0 0 0 / 20%); }
+.result-stats,
+.result-panel .ranking-card {
+  color: #0a2851;
+  background: rgb(255 255 255 / 94%);
+  border-color: rgb(255 255 255 / 62%);
+  box-shadow: 0 14px 34px rgb(0 9 30 / 24%), inset 0 1px 0 white;
+}
+.result-rank { color: #c7dafa; }
+.share-button {
+  color: #241b00 !important;
+  border: 1px solid #f7c51c !important;
+  background: linear-gradient(145deg, #ffe266, #ffd331 55%, #f6bd17) !important;
+  box-shadow: 0 10px 22px rgb(0 8 28 / 20%), inset 0 1px 0 rgb(255 255 255 / 72%) !important;
+  transition: transform .16s ease, filter .16s ease;
+}
+.share-button:active { transform: translateY(2px) scale(.992); box-shadow: 0 5px 12px rgb(0 8 28 / 18%) !important; }
+.home-button { color: #eaf3ff !important; background: rgb(255 255 255 / 9%) !important; border-color: rgb(255 255 255 / 28%) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%) !important; }
+
+@keyframes countdown-v5 {
+  0% { opacity: 0; transform: translateY(14px) scale(.72); filter: blur(5px); }
+  60% { opacity: 1; transform: translateY(-3px) scale(1.06); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes pitch-fast {
+  0% { left: 44.8%; top: 48.4%; transform: translate(-50%, -50%) scale(.5) rotate(0); }
+  52% { left: 48%; top: 66%; transform: translate(-50%, -50%) scale(.72) rotate(500deg); }
+  86% { left: 50%; top: 85.8%; transform: translate(-50%, -50%) scale(1.08) rotate(900deg); }
+  100% { left: 50%; top: 94%; transform: translate(-50%, -50%) scale(1.28) rotate(1080deg); }
+}
+@keyframes pitch-curve {
+  0% { left: 44.8%; top: 48.4%; transform: translate(-50%, -50%) scale(.5) rotate(0); }
+  48% { left: 42%; top: 64%; transform: translate(-50%, -50%) scale(.68) rotate(420deg); }
+  70% { left: 46%; top: 74%; transform: translate(-50%, -50%) scale(.83) rotate(650deg); }
+  86% { left: 50%; top: 85.8%; transform: translate(-50%, -50%) scale(1.08) rotate(880deg); }
+  100% { left: 50%; top: 94%; transform: translate(-50%, -50%) scale(1.28) rotate(1050deg); }
+}
+@keyframes pitch-change {
+  0% { left: 44.8%; top: 48.4%; transform: translate(-50%, -50%) scale(.5) rotate(0); }
+  48% { left: 47%; top: 63%; transform: translate(-50%, -50%) scale(.64) rotate(320deg); }
+  70% { left: 49%; top: 74%; transform: translate(-50%, -50%) scale(.82) rotate(520deg); }
+  86% { left: 50%; top: 85.8%; transform: translate(-50%, -50%) scale(1.08) rotate(710deg); }
+  100% { left: 50%; top: 94%; transform: translate(-50%, -50%) scale(1.28) rotate(850deg); }
+}
+
+@media (max-height: 760px) {
+  .intro-footer { margin-top: 9px; }
+  .pitcher { top: 46.8%; width: 88px; height: 88px; }
+  .pitcher-throw, .pitcher-followThrough { width: 94px; height: 94px; }
+  .catcher { width: 116px; height: 116px; }
+  .catcher-catch, .catcher-reaction { width: 120px; height: 120px; }
+  .abs-zone { top: 85.8%; width: 66px; height: 75px; }
+  .batter { left: -9px; width: 194px; height: 175px; }
+  .countdown-card { min-height: 330px; }
+  .countdown-card > img { width: 64px; height: 64px; }
+  .countdown-card > strong { font-size: 84px; }
+}
+
+/* Keep every character frame mounted. This avoids mobile WebKit briefly
+   exposing the transparent canvas while a replacement image is decoded. */
+.pitcher,
+.catcher { overflow: visible; }
+.pitcher > img,
+.catcher > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.pitcher > img.active,
+.catcher > img.active { opacity: 1; visibility: visible; }
+.batter-frames { position: absolute; inset: 0; display: block; }
+.batter-frame-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.batter-frame-image.active { opacity: 1; visibility: visible; }
+.batter-followThrough:has(.batter-reaction) .batter-frames { opacity: 0; visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown-card > strong { animation: none; }
 }
