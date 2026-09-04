@@ -1,7 +1,8 @@
 import { env } from 'cloudflare:workers';
 
 const CARD_ID = /^[0-9a-f-]{32,36}$/i;
-const MAX_CARD_BYTES = 1_000_000;
+// D1 rows are capped at 2,000,000 bytes; keep margin for row metadata.
+const MAX_CARD_BYTES = 1_800_000;
 
 export async function GET(request: Request) {
   const id = new URL(request.url).searchParams.get('id') ?? '';
