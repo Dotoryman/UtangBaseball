@@ -1,0 +1,27 @@
+/* A legible scoreboard: one baseline and consistent metric hierarchy. */
+.game-hud { height: 84px; padding: 12px 12px 16px; grid-template-columns: 40px minmax(0,1fr) 64px 66px; gap: 12px; background: linear-gradient(155deg,#49372e,#2e2825); color: #fff4dc; border: 1px solid #bda27a; border-radius: 16px; box-shadow: 0 5px 16px #25180d40, inset 0 1px #ffffff15; }
+.hud-home { left: 20px; top: max(23px,calc(env(safe-area-inset-top) + 15px)); width: 38px; height: 46px; background: #ffffff09; color: #eddbbc; border: 1px solid #ffffff26; border-radius: 11px; }
+.hud-score { align-items: flex-start; gap: 8px; }
+.hud-score small, .hud-pitches > span > small, .combo span { color: #c5b299; font-size: 9px; letter-spacing: 1px; line-height: 11px; }
+.hud-score strong, .hud-pitches > span > strong, .combo strong { color: #fff6e5; font-size: 23px; line-height: 25px; font-weight: 800; letter-spacing: -.5px; }
+.hud-pitches { border-left: 1px solid #ffffff18; padding-left: 10px; }
+.hud-pitches > span { gap: 8px 2px; justify-content: start; }
+.hud-pitches > span > small { text-align: left; }
+.hud-pitches > span > b { color: #b6a58d; font-size: 10px; }
+.hud-pitches > div { left: 10px; right: 0; bottom: -8px; gap: 2px; }
+.hud-pitches i { height: 3px; background: #66574b; border-radius: 1px; }
+.hud-pitches i.active { background: #dfb877; }
+.combo { position: relative; height: auto; min-height: 45px; border-left: 1px solid #ffffff18; padding-left: 10px; justify-content: start; }
+.combo > div { gap: 8px; align-items: flex-start; }
+.combo strong { color: #edc68a; }
+.combo svg { position: absolute; right: 0; top: 0; width: 11px; height: 11px; margin: 0; color: #e5a448; }
+.combo span { padding-right: 12px; font-size: 8px; letter-spacing: .4px; }
+.ready-label, .pitch-label { top: 102px; }
+.result-panel { overflow-y: auto; overflow-x: hidden; touch-action: pan-y; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(30px, env(safe-area-inset-bottom)); }
+.batter-impact-bubble { position: absolute; z-index: 24; left: 10%; bottom: 25%; width: 58px; height: 51px; display: grid; place-items: center; border: 3px solid #704127; border-radius: 47% 50% 42% 49%; background: #fff5d5; color: #a94f2d; font: 900 35px/1 Arial,sans-serif; box-shadow: 2px 4px 0 #6e422530; transform: rotate(-13deg); animation: batter-bubble-pop 300ms both; pointer-events: none; }
+.batter-impact-bubble::after { content: ''; position: absolute; right: 7px; bottom: -10px; width: 15px; height: 15px; border-right: 3px solid #704127; border-bottom: 3px solid #704127; background: #fff5d5; transform: skewY(30deg); }
+@keyframes batter-bubble-pop { from { opacity: 0; scale: .5; } 70% { opacity: 1; scale: 1.12; } to { opacity: 1; scale: 1; } }
+.batter-impact-bubble { bottom: 20%; }
+.result-panel { position: relative; }
+@media (max-width: 370px) { .game-hud { gap: 8px; grid-template-columns: 38px minmax(0,1fr) 56px 59px; padding-inline: 10px; } .hud-score strong,.hud-pitches > span > strong,.combo strong { font-size: 21px; } .hud-home { left: 18px; } }
+@media (prefers-reduced-motion: reduce) { .batter-impact-bubble { animation: none; } }
