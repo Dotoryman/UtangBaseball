@@ -19,7 +19,7 @@ type RecordItem = { nickname: string; score: number; homeRuns: number; distance:
 type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launchAngle: number; points: number };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.7.1';
+const APP_VERSION = 'v0.7.2';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
@@ -200,17 +200,19 @@ export default function Home() {
   const shareScore = useCallback(async () => {
     const name = nickname.trim() || '우땅이';
     const cardId = crypto.randomUUID();
-    const query = new URLSearchParams({ name, score: String(score), hr: String(homeRuns), distance: String(maxDistance), combo: String(maxCombo), card: cardId });
+    const query = new URLSearchParams({ n: name, s: String(score), h: String(homeRuns), d: String(maxDistance), x: String(maxCombo), c: cardId });
     const shareUrl = `https://utangbaseball.cloud/share?${query.toString()}`;
+    let cardUploaded = false;
     setShareNotice('공유 카드 준비 중…');
     try {
       const blob = await createShareCard(name, score, homeRuns, maxDistance, maxCombo);
       if (!blob) throw new Error('share-card');
       const upload = await fetch(`/api/share-card?id=${encodeURIComponent(cardId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob });
       if (!upload.ok) throw new Error('share-card-upload');
+      cardUploaded = true;
       if (typeof navigator.share === 'function') { await navigator.share({ url: shareUrl }); setShareNotice('공유 완료!'); }
       else { const copied = await copyText(shareUrl); setShareNotice(copied ? '링크 복사 완료!' : '복사하지 못했어'); }
-    } catch (error) { if ((error as DOMException).name === 'AbortError') setShareNotice('공유를 취소했어'); else { const copied = await copyText(shareUrl); setShareNotice(copied ? '링크 복사 완료!' : '다시 시도해줘'); } }
+    } catch (error) { if ((error as DOMException).name === 'AbortError') setShareNotice('공유를 취소했어'); else if (!cardUploaded) { setShareNotice('카드 저장 실패 · 다시 눌러줘'); } else { const copied = await copyText(shareUrl); setShareNotice(copied ? '링크 복사 완료!' : '다시 시도해줘'); } }
     window.setTimeout(() => setShareNotice(''), 2400);
   }, [homeRuns, maxCombo, maxDistance, nickname, score]);
   const returnHome = useCallback(() => { clearTimers(); setPitch(null); setContact(null); setScreen('intro'); }, [clearTimers]);
@@ -228,9 +230,9 @@ export default function Home() {
       {showHelp && <dialog open className="help-overlay" aria-label="게임 방법"><div className="help-card"><button type="button" className="help-close" onClick={() => setShowHelp(false)} aria-label="닫기"><X size={20} /></button><img src="/utang-sun-logo.png" alt="" /><h2>게임 방법</h2><ol><li><b>10개의 공</b>이 날아와.</li><li>공이 ABS 중앙에 가까워질 때 화면을 탭!</li><li>정확할수록 비거리와 콤보 점수가 커져.</li></ol><Button className="start-button" onClick={() => setShowHelp(false)}>알겠어!</Button></div></dialog>}
     </div>}
     {screen === 'playing' && <button type="button" className="play-field" onPointerDown={resolveSwing} aria-label="화면을 눌러 타격">
-      <div className="game-hud"><span aria-hidden="true" /><div className="hud-score"><small>SCORE</small><strong>{score.toLocaleString()}</strong></div><div className="hud-pitches"><span>{String(pitchNumber).padStart(2, '0')}<small>/10</small></span><div>{Array.from({ length: TOTAL_PITCHES }, (_, index) => <i key={index} className={index < pitchNumber ? 'active' : ''} />)}</div></div><div className="combo"><Flame size={17} /><span>COMBO</span><strong>×{combo}</strong></div></div>
+      <div className="game-hud"><span aria-hidden="true" /><div className="hud-score"><small>SCORE</small><strong>{score.toLocaleString()}</strong></div><div className="hud-pitches"><span><small>PITCH</small><strong>{String(pitchNumber).padStart(2, '0')}</strong><b>/10</b></span><div>{Array.from({ length: TOTAL_PITCHES }, (_, index) => <i key={index} className={index < pitchNumber ? 'active' : ''} />)}</div></div><div className="combo"><Flame size={17} /><div><span>COMBO</span><strong>×{combo}</strong></div></div></div>
       <div className="stadium"><img src="/utang-stadium-v5.webp" alt="다양한 우땅이 관중들이 응원하는 야구장" className="stadium-background" /><span className="sr-only">투수 우땅이</span><div aria-hidden="true" className={`pitcher pitcher-${pitcherPhase}`}><span className="pitcher-sprite" style={{ backgroundPosition: showPitcherFollow ? '100% 0' : '0 0' }} /></div>{pitcherPhase === 'throw' && <span className="release-flash" aria-hidden="true" />}<div className="pitch-guide" aria-hidden="true" /><span className="sr-only">{showCatcherCatch ? '공을 잡은 포수 우땅이' : '포수 우땅이'}</span><div aria-hidden="true" className={`catcher catcher-${catcherPhase}`}><span className="catcher-sprite" style={{ backgroundPosition: showCatcherCatch ? '100% 0' : '0 0' }} /></div>
-        {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true"><span>ABS</span>{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
+        {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
         {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball flying-${contact?.outcome.toLowerCase()}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
         <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span><span className="batter-sprite-v6" aria-hidden="true" style={{ backgroundPosition: `${(batterFrame / (BATTER_FRAMES.length - 1)) * 100}% 0` }} />{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
         {pitch && !contact && <div className="pitch-label">{pitch.type}</div>}{!pitch && !contact && !countdown && <div className="ready-label">투수 준비 중</div>}{contact && <div className={`judgment judgment-${RESULT_META[contact.outcome].tier}`}><strong>{RESULT_META[contact.outcome].label}</strong>{contact.distance > 0 && <span>{contact.distance}m · {contact.exitVelocity}km/h</span>}</div>}

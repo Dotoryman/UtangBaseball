@@ -1179,7 +1179,7 @@ body {
 .intro-emote-left { left: -4px; top: 42px; transform: rotate(-9deg); }
 .intro-emote-right { right: 2px; top: 139px; width: 50px; height: 50px; transform: rotate(8deg); }
 .intro-emote-right,
-.result-emotes img:last-child { border-radius: 50%; }
+.result-emotes > img:last-child { border-radius: 50%; }
 .nickname-input {
   color: #4a2e22 !important;
   border-color: rgb(100 61 40 / 17%) !important;
@@ -1263,8 +1263,8 @@ body {
 .result-emotes { position: absolute; z-index: 0; inset: 72px 0 auto; pointer-events: none; }
 .result-panel > :not(.result-emotes) { position: relative; z-index: 1; }
 .result-emotes img { position: absolute; width: 58px; height: 58px; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(74 46 34 / 12%)); }
-.result-emotes img:first-child { left: 20px; top: 35px; transform: rotate(-10deg); }
-.result-emotes img:last-child { right: 19px; top: 114px; width: 48px; height: 48px; transform: rotate(9deg); }
+.result-emotes > img:first-child { left: 20px; top: 35px; transform: rotate(-10deg); }
+.result-emotes > img:last-child { right: 19px; top: 114px; width: 48px; height: 48px; transform: rotate(9deg); }
 .home-button { color: #5a3827 !important; background: rgb(255 250 238 / 47%) !important; border-color: rgb(91 55 36 / 21%) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / 55%) !important; }
 
 .share-page {
@@ -1688,4 +1688,223 @@ body {
   .countdown-friend-left { width: 66px; height: 66px; bottom: 62px; }
   .countdown-friend-right { width: 78px; height: 57px; top: 72px; }
   .result-emote-ball, .result-emote-sun { display: block; }
+}
+
+/* v0.7.2 — quieter aiming guide and a compact, purpose-built game scoreboard. */
+.game-hud {
+  left: 8px;
+  right: 8px;
+  top: max(8px, env(safe-area-inset-top));
+  height: 66px;
+  grid-template-columns: 42px 72px minmax(0, 1fr) 77px;
+  gap: 5px;
+  padding: 7px 8px;
+  color: #fffaf0;
+  background: linear-gradient(180deg, rgb(61 42 31 / 96%), rgb(31 28 29 / 95%));
+  border: 1px solid rgb(247 213 147 / 48%);
+  border-bottom: 3px solid #d5a84d;
+  border-radius: 15px;
+  box-shadow: 0 8px 22px rgb(34 20 15 / 34%), inset 0 1px 0 rgb(255 255 255 / 14%);
+  backdrop-filter: blur(8px) saturate(.82);
+}
+.hud-home {
+  left: 16px;
+  top: max(15px, calc(env(safe-area-inset-top) + 7px));
+  width: 34px;
+  height: 50px;
+  color: #fff5df;
+  background: rgb(255 247 226 / 9%);
+  border-color: rgb(245 214 157 / 28%);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+}
+.hud-score { padding-left: 4px; }
+.hud-score small,
+.hud-pitches > span > small,
+.combo span {
+  color: #d9c5a8;
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 1.15px;
+}
+.hud-score strong { margin-top: 5px; color: #fff; font-size: 17px; line-height: .9; }
+.hud-pitches { display: grid; align-content: center; }
+.hud-pitches > span { display: flex; align-items: baseline; justify-content: center; gap: 3px; color: inherit; line-height: 1; }
+.hud-pitches > span > small { margin: 0 3px 0 0; }
+.hud-pitches > span > strong { color: #ffd45d; font-size: 23px; line-height: .85; letter-spacing: -1px; }
+.hud-pitches > span > b { color: #e8ded0; font-size: 10px; }
+.hud-pitches > div { gap: 3px; margin-top: 8px; }
+.hud-pitches i { height: 4px; background: rgb(255 255 255 / 16%); }
+.hud-pitches i.active { background: #efbd45; box-shadow: 0 0 6px rgb(239 189 69 / 48%); }
+.combo {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 4px;
+  background: rgb(12 10 10 / 21%);
+  border-left: 1px solid rgb(247 213 147 / 17%);
+  border-radius: 8px;
+}
+.combo svg { flex: 0 0 auto; width: 18px; height: 18px; color: #ffb62c; filter: drop-shadow(0 0 4px rgb(255 182 44 / 36%)); }
+.combo > div { display: flex; min-width: 40px; flex-direction: column; align-items: flex-start; }
+.combo span { color: #d9c5a8; font-size: 6.5px; }
+.combo strong { margin-top: 3px; color: #ffe06f; font-size: 18px; line-height: 1; }
+
+.abs-zone {
+  border: 2px solid rgb(255 255 255 / 45%);
+  background: rgb(255 255 255 / 2%);
+  box-shadow: 0 0 0 1px rgb(20 50 80 / 22%), 0 0 9px rgb(255 255 255 / 10%);
+}
+.abs-zone i { border-color: rgb(255 255 255 / 14%); }
+.abs-zone.live { animation-name: abs-pulse-soft; }
+.contact-core {
+  border-color: rgb(255 220 88 / 82%);
+  background: rgb(255 225 90 / 6%);
+  box-shadow: 0 0 0 2px rgb(34 48 57 / 21%), 0 0 8px rgb(255 225 90 / 29%);
+}
+
+/* The countdown is one composed scene, rather than a tall stack of loose elements. */
+.countdown-overlay { padding: 18px; }
+.countdown-card {
+  width: min(86%, 324px);
+  height: 424px;
+  min-height: 0;
+  display: block;
+  padding: 22px 25px 20px;
+  background:
+    linear-gradient(165deg, rgb(255 255 255 / 28%), transparent 35%),
+    linear-gradient(160deg, rgb(255 250 238 / 99%), rgb(237 210 170 / 99%));
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: 34px;
+  box-shadow: 0 25px 65px rgb(28 15 10 / 43%), inset 0 0 0 6px rgb(126 75 45 / 5%);
+  overflow: hidden;
+}
+.countdown-kicker {
+  position: absolute !important;
+  z-index: 4;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: #955336 !important;
+  font-size: 8px !important;
+  letter-spacing: 2.5px !important;
+}
+.countdown-mascot {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 166px;
+  height: 162px;
+  margin: 0;
+}
+.countdown-mascot-glow {
+  inset: 19px 13px 11px !important;
+  border: 0 !important;
+  border-radius: 48% 52% 47% 53% !important;
+  background: linear-gradient(145deg, rgb(244 202 103 / 48%), rgb(218 150 52 / 20%)) !important;
+  transform: rotate(-4deg);
+}
+.countdown-mascot img { width: 146px; height: 160px; }
+.countdown-card > small { grid-row: 3; align-self: center; margin: 0; color: #8c6854; font-size: 10px; }
+.countdown-card > strong {
+  position: absolute;
+  top: 238px;
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  color: #563628;
+  font-size: 88px;
+  line-height: 1;
+  letter-spacing: -5px;
+  text-shadow: 0 5px 0 rgb(255 255 255 / 64%);
+}
+.countdown-card > small { position: absolute; z-index: 4; top: 216px; left: 50%; transform: translateX(-50%); margin: 0; white-space: nowrap; color: #8c6854; font-size: 10px; }
+.countdown-card > b { position: absolute; z-index: 4; top: 340px; left: 50%; transform: translateX(-50%); margin: 0; white-space: nowrap; color: #b45d3d; font-size: 15px; }
+.countdown-dots { position: absolute; z-index: 4; left: 50%; bottom: 29px; transform: translateX(-50%); gap: 7px; margin: 0; }
+.countdown-dots i { width: 25px; height: 4px; }
+.countdown-friend-left { left: 12px; top: 112px; bottom: auto; width: 62px; height: 62px; transform: rotate(-10deg); }
+.countdown-friend-right { right: 8px; top: 91px; width: 76px; height: 56px; transform: rotate(8deg); }
+.countdown-card .countdown-friend {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Result decoration now follows the same small ballpark scene used on the start screen. */
+.result-panel::before {
+  background:
+    linear-gradient(177deg, transparent 0 19%, rgb(245 235 200 / 0%) 19.2%),
+    repeating-linear-gradient(7deg, transparent 0 34px, rgb(92 56 37 / 2.8%) 35px 36px);
+}
+.result-character {
+  isolation: isolate;
+  width: 220px;
+  height: 194px;
+}
+.result-character::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  left: 50%;
+  bottom: 4px;
+  width: 318px;
+  height: 104px;
+  transform: translateX(-50%);
+  border-radius: 52% 48% 0 0 / 48% 45% 0 0;
+  background: linear-gradient(180deg, rgb(214 215 157 / 78%), rgb(232 202 151 / 31%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 44%);
+}
+.result-character::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: 12px;
+  width: 160px;
+  height: 31px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgb(81 50 32 / 12%);
+  filter: blur(8px);
+}
+.result-image { position: relative; z-index: 2; width: 200px; height: 194px; }
+.result-burst { display: none; }
+.result-emotes { inset: 61px 0 auto; height: 282px; }
+.result-emote { opacity: .96; }
+.result-emote-wave { left: 13px; top: 49px; width: 75px; height: 75px; transform: rotate(-8deg); }
+.result-emote-chill { right: -1px; top: 36px; width: 91px; height: 67px; transform: rotate(7deg); }
+.result-emote-ball { left: 20px; top: 186px; width: 52px; height: 79px; transform: rotate(4deg); }
+.result-emote-sun { right: 17px; top: 188px; width: 52px; height: 52px; transform: rotate(-5deg); }
+
+@keyframes abs-pulse-soft {
+  from { opacity: .64; }
+  to { opacity: .82; }
+}
+
+@media (max-height: 760px) {
+  .game-hud { height: 62px; }
+  .hud-home { height: 46px; }
+  .countdown-card { height: 372px; min-height: 0; grid-template-rows: 18px 130px 18px 78px 23px 6px; padding-top: 17px; }
+  .countdown-kicker { top: 17px; }
+  .countdown-mascot { top: 38px; width: 136px; height: 130px; margin: 0; }
+  .countdown-mascot img { width: 120px; height: 131px; }
+  .countdown-card > small { top: 176px; }
+  .countdown-card > strong { top: 194px; font-size: 72px; }
+  .countdown-card > b { top: 283px; }
+  .countdown-dots { bottom: 23px; }
+  .countdown-friend-left { top: 91px; width: 55px; height: 55px; }
+  .countdown-friend-right { top: 73px; width: 66px; height: 49px; }
+  .result-character { width: 204px; height: 180px; }
+  .result-image { width: 188px; height: 180px; }
 }
