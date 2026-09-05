@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './v080.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://utangbaseball.cloud'),

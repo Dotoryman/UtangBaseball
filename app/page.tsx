@@ -19,7 +19,7 @@ type RecordItem = { nickname: string; score: number; homeRuns: number; distance:
 type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launchAngle: number; points: number };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.7.3';
+const APP_VERSION = 'v0.8.0';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
@@ -202,11 +202,12 @@ export default function Home() {
     const isFoul = nextContact.outcome === 'FOUL';
     const catchDelay = Math.max(120, (1 - progress) * pitch.duration + 30);
     if (!isWhiff) setPitch(null);
-    setContact(nextContact); setCombo(nextCombo); setMaxCombo(nextMaxCombo); setScore(nextScore); setHomeRuns(nextHomeRuns); setMaxDistance(nextMaxDistance); setBallFlying(!isWhiff && !isFoul); setCatcherPhase(isWhiff ? 'prepare' : 'reaction');
+    setContact(nextContact); setCombo(nextCombo); setMaxCombo(nextMaxCombo); setScore(nextScore); setHomeRuns(nextHomeRuns); setMaxDistance(nextMaxDistance); setBallFlying(!isWhiff && !isFoul && nextContact.outcome !== 'HOME_RUN'); setCatcherPhase(isWhiff ? 'prepare' : 'reaction');
+    if (nextContact.outcome === 'HOME_RUN') schedule(() => setBallFlying(true), 180);
     [2, 3, 4, 5, 6, 7].forEach((frame, index) => schedule(() => setBatterFrame(frame), 55 + index * 58));
     schedule(() => { setBatterFrame(7); setBatterPhase('followThrough'); }, 420);
     if (isWhiff) schedule(() => { setPitch(null); setCatcherPhase('catch'); }, catchDelay);
-    const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 1550 : 1120;
+    const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 2100 : 1120;
     schedule(() => { setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else queuePitch(pitchNumber + 1); }, finishDelay);
   }, [batterPhase, clearTimers, combo, contact, countdown, finishGame, homeRuns, maxCombo, maxDistance, pitch, pitchNumber, queuePitch, schedule, score, screen]);
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (screen === 'playing' && event.code === 'Space' && !event.repeat && !(event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], .hud-home'))) { event.preventDefault(); resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing, screen]);
@@ -252,7 +253,8 @@ export default function Home() {
       <footer className="intro-footer"><span>{APP_VERSION}</span><i aria-hidden="true" /> <span>Made by Dotoryman</span></footer>
       {showHelp && <dialog open className="help-overlay" aria-label="게임 방법"><div className="help-card"><button type="button" className="help-close" onClick={() => setShowHelp(false)} aria-label="닫기"><X size={20} /></button><img src="/utang-sun-logo.png" alt="" /><h2>게임 방법</h2><ol><li><b>10개의 공</b>이 날아와.</li><li>공이 ABS 중앙에 가까워질 때 화면을 탭!</li><li>정확할수록 비거리와 콤보 점수가 커져.</li></ol><Button className="start-button" onClick={() => setShowHelp(false)}>알겠어!</Button></div></dialog>}
     </div>}
-    {screen === 'playing' && <button type="button" className="play-field" onPointerDown={resolveSwing} aria-label="화면을 눌러 타격">
+    {screen === 'playing' && <button type="button" className={`play-field ${contact?.outcome === 'HOME_RUN' ? 'home-run-impact' : ''}`} onPointerDown={resolveSwing} aria-label="화면을 눌러 타격">
+      {contact?.outcome === 'HOME_RUN' && <output className="homer-celebration"><span aria-hidden="true" className="homer-mark">!!</span><strong>HOME RUN!</strong><span className="homer-caption">우땅이, 날렸다! · {contact.distance}m</span><i aria-hidden="true" /><i aria-hidden="true" /><i aria-hidden="true" /></output>}
       <div className="game-hud"><span aria-hidden="true" /><div className="hud-score"><small>SCORE</small><strong>{score.toLocaleString()}</strong></div><div className="hud-pitches"><span><small>PITCH</small><strong>{String(pitchNumber).padStart(2, '0')}</strong><b>/10</b></span><div>{Array.from({ length: TOTAL_PITCHES }, (_, index) => <i key={index} className={index < pitchNumber ? 'active' : ''} />)}</div></div><div className="combo"><Flame size={17} /><div><span>COMBO</span><strong>×{combo}</strong></div></div></div>
       <div className="stadium"><img src="/utang-stadium-v5.webp" alt="다양한 우땅이 관중들이 응원하는 야구장" className="stadium-background" /><span className="sr-only">투수 우땅이</span><div aria-hidden="true" className={`pitcher pitcher-${pitcherPhase}`}><span className="pitcher-sprite" style={{ backgroundPosition: showPitcherFollow ? '100% 0' : '0 0' }} /></div>{pitcherPhase === 'throw' && <span className="release-flash" aria-hidden="true" />}<div className="pitch-guide" aria-hidden="true" /><span className="sr-only">{showCatcherCatch ? '공을 잡은 포수 우땅이' : '포수 우땅이'}</span><div aria-hidden="true" className={`catcher catcher-${catcherPhase}`}><span className="catcher-sprite" style={{ backgroundPosition: showCatcherCatch ? '100% 0' : '0 0' }} /></div>
         {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
