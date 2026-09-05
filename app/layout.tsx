@@ -16,14 +16,14 @@ export const metadata: Metadata = {
     description: '우땅이와 함께 즐기는 10구 타격 게임',
     type: 'website',
     images: [
-      { url: '/og-utangbaseball-v6.png', width: 1200, height: 630, alt: '따뜻한 야구장에서 타격하는 우땅이' },
+      { url: '/og-utangbaseball-v073.png', width: 1200, height: 630, alt: '따뜻한 야구장에서 타격하는 우땅이' },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     title: '우땅야구',
     description: '우땅이와 함께 즐기는 10구 타격 게임',
-    images: ['/og-utangbaseball-v6.png'],
+    images: ['/og-utangbaseball-v073.png'],
   },
 };
 

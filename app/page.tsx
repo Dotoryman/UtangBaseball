@@ -19,7 +19,7 @@ type RecordItem = { nickname: string; score: number; homeRuns: number; distance:
 type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launchAngle: number; points: number };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.7.2';
+const APP_VERSION = 'v0.7.3';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
@@ -61,13 +61,13 @@ function measureVisualSwingError() {
   const dy = ball.top + ball.height / 2 - (target.top + target.height / 2);
   return Math.hypot(dx, dy) / (stage.height * 0.46);
 }
+function koreanMidnight(now = Date.now()) { return Math.floor((now + 9 * 3600000) / 86400000) * 86400000 - 9 * 3600000; }
 function loadRecords(): RecordItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const records = JSON.parse(localStorage.getItem('utang-baseball-records') ?? '[]') as RecordItem[];
-    const now = new Date();
-    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    return records.filter((record) => record.playedAt >= midnight);
+    if (!Array.isArray(records)) return [];
+    return records.filter((record) => record && typeof record.nickname === 'string' && Number.isFinite(record.score) && record.playedAt >= koreanMidnight() && record.playedAt <= Date.now()).sort((a, b) => b.score - a.score).slice(0, 50);
   } catch { return []; }
 }
 async function copyText(text: string) {
@@ -77,24 +77,30 @@ async function copyText(text: string) {
   }
 }
 function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = src; });
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const timeout = window.setTimeout(() => reject(new Error('image-timeout')), 10000);
+    image.onload = () => { window.clearTimeout(timeout); resolve(image); };
+    image.onerror = () => { window.clearTimeout(timeout); reject(new Error('image-load')); };
+    image.src = src;
+  });
 }
 async function createShareCard(name: string, score: number, homeRuns: number, maxDistance: number, maxCombo: number) {
   const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 630;
   const context = canvas.getContext('2d'); if (!context) return null;
   try {
-    const background = await loadImage('/utang-share-card-v6-bg.jpg');
+    const background = await loadImage('/utang-share-card-v073-bg.jpg');
     context.drawImage(background, 0, 0, 1200, 630);
   } catch {
-    const fallback = context.createLinearGradient(0, 0, 1200, 630); fallback.addColorStop(0, '#071c46'); fallback.addColorStop(1, '#164f9e');
+    const fallback = context.createLinearGradient(0, 0, 1200, 630); fallback.addColorStop(0, '#38251c'); fallback.addColorStop(1, '#795039');
     context.fillStyle = fallback; context.fillRect(0, 0, 1200, 630);
   }
   context.textBaseline = 'alphabetic'; context.textAlign = 'left';
   context.fillStyle = '#e3b85c'; context.font = '900 23px Arial, sans-serif'; context.fillText('UTANG BASEBALL · FINAL SCORE', 105, 154);
-  const playerTitle = `${name} 선수의 10구 승부`;
+  const playerTitle = `${name} 선수의 야구 도전`;
   context.fillStyle = '#fff8e9'; context.font = '900 42px "Malgun Gothic", sans-serif';
   if (context.measureText(playerTitle).width > 630) context.font = '900 34px "Malgun Gothic", sans-serif';
-  context.fillText(playerTitle, 105, 211);
+  context.fillText(playerTitle, 105, 211, 630);
   context.fillStyle = '#fff8e9'; context.font = '900 98px "Arial Black", "Malgun Gothic", sans-serif'; context.fillText(score.toLocaleString(), 100, 325);
   const scoreWidth = context.measureText(score.toLocaleString()).width;
   context.fillStyle = '#e3b85c'; context.font = '900 34px "Malgun Gothic", sans-serif'; context.fillText('점', 114 + scoreWidth, 321);
@@ -115,14 +121,25 @@ export default function Home() {
   const [homeRuns, setHomeRuns] = useState(0); const [maxDistance, setMaxDistance] = useState(0); const [contact, setContact] = useState<Contact | null>(null);
   const [ballFlying, setBallFlying] = useState(false); const [records, setRecords] = useState<RecordItem[]>([]); const [shareNotice, setShareNotice] = useState('');
   const [showHelp, setShowHelp] = useState(false); const [rankingPage, setRankingPage] = useState(0);
+  const shareBusy = useRef(false);
   const timersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]); const statsRef = useRef({ score: 0, homeRuns: 0, maxDistance: 0, maxCombo: 0 });
   const schedule = useCallback((callback: () => void, delay: number) => { const timer = setTimeout(callback, delay); timersRef.current.push(timer); return timer; }, []);
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current = []; }, []);
 
   useEffect(() => {
-    const localTimer = window.setTimeout(() => setRecords(loadRecords()), 80);
-    fetch('/api/scores?period=daily').then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (Array.isArray(data?.records)) setRecords(data.records); }).catch(() => undefined);
-    return () => window.clearTimeout(localTimer);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      setRecords((current) => current.filter((record) => record.playedAt >= koreanMidnight()));
+      fetch('/api/scores?period=daily').then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (!cancelled && Array.isArray(data?.records)) setRecords(data.records.filter((record) => record.playedAt >= koreanMidnight())); }).catch(() => undefined);
+      clearTimeout(timer);
+      timer = setTimeout(refresh, koreanMidnight() + 86400000 - Date.now() + 100);
+    };
+    setRecords(loadRecords());
+    refresh();
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
   }, []);
   useEffect(() => {
     const characterAssets = [
@@ -145,7 +162,9 @@ export default function Home() {
   useEffect(() => clearTimers, [clearTimers]);
   const finishGame = useCallback((finalScore: number, finalHomeRuns: number, finalDistance: number) => {
     const record: RecordItem = { nickname: nickname.trim() || '우땅이', score: finalScore, homeRuns: finalHomeRuns, distance: finalDistance, playedAt: Date.now() };
-    const nextRecords = [...loadRecords(), record].sort((a, b) => b.score - a.score).slice(0, 50); localStorage.setItem('utang-baseball-records', JSON.stringify(nextRecords)); setRecords(nextRecords);
+    const nextRecords = [...loadRecords(), record].sort((a, b) => b.score - a.score).slice(0, 50);
+    try { localStorage.setItem('utang-baseball-records', JSON.stringify(nextRecords)); } catch { /* Results still work when browser storage is unavailable. */ }
+    setRecords(nextRecords);
     setPitch(null); setScreen('result'); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (Array.isArray(data?.records)) setRecords(data.records); }).catch(() => undefined);
   }, [nickname]);
@@ -165,6 +184,7 @@ export default function Home() {
   }, [finishGame, schedule]);
   const startGame = useCallback((event?: { preventDefault(): void }) => {
     event?.preventDefault(); if (!nickname.trim()) setNickname('우땅이'); clearTimers(); statsRef.current = { score: 0, homeRuns: 0, maxDistance: 0, maxCombo: 0 };
+    setPitch(null); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     setScore(0); setCombo(0); setMaxCombo(0); setHomeRuns(0); setMaxDistance(0); setShareNotice(''); setPitchNumber(0); setScreen('playing'); setCountdown(3);
     schedule(() => setCountdown(2), 700); schedule(() => setCountdown(1), 1400); schedule(() => setCountdown('PLAY'), 2100);
     schedule(() => { setCountdown(null); queuePitch(1); }, 2500);
@@ -189,7 +209,7 @@ export default function Home() {
     const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 1550 : 1120;
     schedule(() => { setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else queuePitch(pitchNumber + 1); }, finishDelay);
   }, [batterPhase, clearTimers, combo, contact, countdown, finishGame, homeRuns, maxCombo, maxDistance, pitch, pitchNumber, queuePitch, schedule, score, screen]);
-  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.code === 'Space') { event.preventDefault(); resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing]);
+  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (screen === 'playing' && event.code === 'Space' && !event.repeat && !(event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], .hud-home'))) { event.preventDefault(); resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing, screen]);
 
   const rank = useMemo(() => records.findIndex((item) => item.nickname === (nickname.trim() || '우땅이') && item.score === score) + 1, [nickname, records, score]);
   const rankingPageCount = Math.max(1, Math.ceil(records.length / RANKING_PAGE_SIZE));
@@ -198,6 +218,8 @@ export default function Home() {
   const grade = score >= 50000 ? '전설의 우땅이' : score >= 30000 ? '홈런왕 우땅이' : score >= 15000 ? '주전 우땅이' : score >= 5000 ? '동네 야구 우땅이' : '야구공 구경 온 우땅이';
   const resultImage = homeRuns > 0 ? '/utang-batter-v8-follow.png' : score >= 5000 ? '/utang-pose-good-authentic.png' : '/utang-pose-miss-v071.png';
   const shareScore = useCallback(async () => {
+    if (shareBusy.current) return;
+    shareBusy.current = true;
     const name = nickname.trim() || '우땅이';
     const cardId = crypto.randomUUID();
     const query = new URLSearchParams({ n: name, s: String(score), h: String(homeRuns), d: String(maxDistance), x: String(maxCombo), c: cardId });
@@ -207,15 +229,16 @@ export default function Home() {
     try {
       const blob = await createShareCard(name, score, homeRuns, maxDistance, maxCombo);
       if (!blob) throw new Error('share-card');
-      const upload = await fetch(`/api/share-card?id=${encodeURIComponent(cardId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob });
+      const upload = await fetch(`/api/share-card?id=${encodeURIComponent(cardId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob, signal: AbortSignal.timeout(15000) });
       if (!upload.ok) throw new Error('share-card-upload');
       cardUploaded = true;
-      if (typeof navigator.share === 'function') { await navigator.share({ url: shareUrl }); setShareNotice('공유 완료!'); }
+      if (typeof navigator.share === 'function') { setShareNotice('공유 앱 선택 중…'); await navigator.share({ url: shareUrl }); setShareNotice('공유 완료!'); }
       else { const copied = await copyText(shareUrl); setShareNotice(copied ? '링크 복사 완료!' : '복사하지 못했어'); }
     } catch (error) { if ((error as DOMException).name === 'AbortError') setShareNotice('공유를 취소했어'); else if (!cardUploaded) { setShareNotice('카드 저장 실패 · 다시 눌러줘'); } else { const copied = await copyText(shareUrl); setShareNotice(copied ? '링크 복사 완료!' : '다시 시도해줘'); } }
+    shareBusy.current = false;
     window.setTimeout(() => setShareNotice(''), 2400);
   }, [homeRuns, maxCombo, maxDistance, nickname, score]);
-  const returnHome = useCallback(() => { clearTimers(); setPitch(null); setContact(null); setScreen('intro'); }, [clearTimers]);
+  const returnHome = useCallback(() => { clearTimers(); setPitch(null); setContact(null); setBallFlying(false); setCountdown(null); setScreen('intro'); }, [clearTimers]);
   const showPitcherFollow = pitcherPhase === 'throw' || pitcherPhase === 'followThrough';
   const showCatcherCatch = catcherPhase === 'catch';
 
@@ -236,9 +259,9 @@ export default function Home() {
         {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball flying-${contact?.outcome.toLowerCase()}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
         <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span><span className="batter-sprite-v6" aria-hidden="true" style={{ backgroundPosition: `${(batterFrame / (BATTER_FRAMES.length - 1)) * 100}% 0` }} />{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
         {pitch && !contact && <div className="pitch-label">{pitch.type}</div>}{!pitch && !contact && !countdown && <div className="ready-label">투수 준비 중</div>}{contact && <div className={`judgment judgment-${RESULT_META[contact.outcome].tier}`}><strong>{RESULT_META[contact.outcome].label}</strong>{contact.distance > 0 && <span>{contact.distance}m · {contact.exitVelocity}km/h</span>}</div>}
-        {!countdown && !contact && <div className="swing-cue"><span className="tap-ring"><i /></span><strong>탭!</strong><small>SPACE</small></div>}{countdown && <div className="countdown-overlay" aria-live="assertive"><div className="countdown-card"><span className="countdown-kicker">UTANG BASEBALL</span><span className="countdown-friend countdown-friend-left" aria-hidden="true"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="countdown-friend countdown-friend-right" aria-hidden="true"><img src="/utang-sticker-chill-v071.png" alt="" /></span><div className="countdown-mascot"><span className="countdown-mascot-glow" aria-hidden="true" /><img src="/utang-countdown-v071.png" alt="야구공을 안고 준비하는 우땅이" /></div><small>9회말 · 10구 승부</small><strong key={countdown}>{countdown}</strong><b>{countdown === 'PLAY' ? 'PLAY BALL!' : '타격 준비'}</b><div className="countdown-dots" aria-hidden="true"><i className="active" /><i className={countdown === 2 || countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /><i className={countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /></div></div></div>}
+        {!countdown && !contact && <div className="swing-cue"><span className="tap-ring"><i /></span><strong>탭!</strong><small>SPACE</small></div>}{countdown && <div className="countdown-overlay" aria-live="assertive"><div className="countdown-card"><span className="countdown-kicker">UTANG BASEBALL</span><span className="countdown-friend countdown-friend-left" aria-hidden="true"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="countdown-friend countdown-friend-right" aria-hidden="true"><img src="/utang-sticker-chill-v071.png" alt="" /></span><div className="countdown-mascot"><span className="countdown-mascot-glow" aria-hidden="true" /><img src="/utang-countdown-v071.png" alt="야구공을 안고 준비하는 우땅이" /></div><small>우땅이의 야구 도전</small><strong key={countdown}>{countdown}</strong><b>{countdown === 'PLAY' ? 'PLAY BALL!' : '타격 준비'}</b><div className="countdown-dots" aria-hidden="true"><i className="active" /><i className={countdown === 2 || countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /><i className={countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /></div></div></div>}
       </div>
-    </button>}{screen === 'playing' && <button type="button" className="hud-home" aria-label="처음 화면으로" onPointerDown={(event) => { event.stopPropagation(); returnHome(); }}><HomeIcon size={18} /></button>}
+    </button>}{screen === 'playing' && <button type="button" className="hud-home" aria-label="처음 화면으로" onClick={returnHome}><HomeIcon size={18} /></button>}
     {screen === 'result' && <div className="result-panel screen-panel"><header className="result-topbar"><button type="button" className="intro-brand brand-home" onClick={returnHome} aria-label="우땅야구 시작 화면"><img src="/utang-sun-logo.png" alt="햇님 우땅이" /><strong>우땅야구</strong></button></header><div className="result-emotes" aria-hidden="true"><span className="result-emote result-emote-wave"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="result-emote result-emote-chill"><img src="/utang-sticker-chill-v071.png" alt="" /></span><span className="result-emote result-emote-ball"><img src="/utang-countdown-v071.png" alt="" /></span><span className="result-emote result-emote-sun"><img src="/utang-sun-logo.png" alt="" /></span></div><p className="badge">경기 종료</p><div className="result-character"><span className="result-burst" /><img src={resultImage} alt="경기를 마친 우땅이" className={`result-image ${homeRuns > 0 ? 'result-image-homer' : score >= 5000 ? 'result-image-good' : 'result-image-miss'}`} /></div><p className="result-grade">{grade}</p><h2>{score.toLocaleString()}<small>점</small></h2><div className="result-stats"><div><span>홈런</span><strong>{homeRuns}개</strong></div><div><span>최고 비거리</span><strong>{maxDistance}m</strong></div><div><span>최고 콤보</span><strong>×{maxCombo}</strong></div></div>
       <div className="ranking-card"><div className="ranking-title"><Trophy size={16} /> 오늘의 우땅왕 TOP 3</div>{records.slice(0, 3).map((item, index) => <div className="ranking-row" key={`${item.playedAt}-${index}`}><b>{index + 1}</b><span>{item.nickname}</span><strong>{item.score.toLocaleString()}점</strong></div>)}</div><p className="result-rank">오늘 순위 <strong>{rank || '-'}위</strong> · 매일 00:00 초기화</p><div className="result-actions"><Button className="start-button" onClick={() => startGame()}><RotateCcw size={18} /> 다시 도전</Button><Button className="share-button" onClick={shareScore}>{shareNotice ? <Check size={18} /> : <MessageCircle size={18} fill="currentColor" />}{shareNotice || '카카오톡 공유'}</Button><Button variant="outline" className="home-button" onClick={returnHome}><HomeIcon size={18} /> 처음 화면으로</Button></div></div>}
   </section></main>;

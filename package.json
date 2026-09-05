@@ -1,6 +1,6 @@
 {
   "name": "utang-baseball",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
-    "assets:build": "node scripts/build-v030-assets.mjs && node scripts/strip-light-background.mjs assets/source/utang-pose-miss-v4-source.png public/utang-pose-miss-v4.png 218 && node scripts/strip-light-background.mjs assets/source/utang-catcher-catch-v4-source.png public/utang-catcher-catch-v4.png 218",
+    "assets:build": "node scripts/build-v030-assets.mjs && node scripts/strip-light-background.mjs assets/source/utang-pose-miss-v4-source.png public/utang-pose-miss-v4.png 218 && node scripts/strip-light-background.mjs assets/source/utang-catcher-catch-v4-source.png public/utang-catcher-catch-v4.png 218 && node scripts/build-share-v073.mjs",
     "lint": "oxlint app lib",
     "format": "oxfmt",
     "typecheck": "tsc --noEmit",

@@ -106,7 +106,7 @@ async function buildShareCards() {
     <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
       <style>.ko{font-family:"Malgun Gothic",sans-serif}.en{font-family:Arial,sans-serif}</style>
       <text x="105" y="154" class="en" font-size="23" font-weight="900" fill="#e3b85c">UTANG BASEBALL · FINAL SCORE</text>
-      <text x="105" y="211" class="ko" font-size="42" font-weight="900" fill="#fff8e9">우땅이 선수의 10구 승부</text>
+      <text x="105" y="211" class="ko" font-size="42" font-weight="900" fill="#fff8e9">우땅이 선수의 야구 도전</text>
       <text x="100" y="325" class="en" font-size="98" font-weight="900" fill="#fff8e9">52,272</text>
       <text x="466" y="321" class="ko" font-size="34" font-weight="900" fill="#e3b85c">점</text>
       <line x1="105" y1="354" x2="735" y2="354" stroke="#fff4dc" stroke-opacity=".22" stroke-width="2"/>
