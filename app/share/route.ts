@@ -22,7 +22,7 @@ export function GET(request: Request) {
   const card = query.get('c') ?? query.get('card') ?? '';
   const hasCard = /^[0-9a-f-]{32,36}$/i.test(card);
   const image = hasCard
-    ? `${ORIGIN}/api/share-card?id=${encodeURIComponent(card)}&v=72`
+    ? `${ORIGIN}/api/share-card?id=${encodeURIComponent(card)}&v=722`
     : `${ORIGIN}/og-utangbaseball-v6.png`;
   const title = `${nickname}의 우땅야구 ${score.toLocaleString('ko-KR')}점!`;
   const description = `홈런 ${homeRuns}개 · 최고 비거리 ${distance}m · 최고 콤보 ×${combo}`;

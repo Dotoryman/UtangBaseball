@@ -9,11 +9,12 @@ export async function GET(request: Request) {
   if (!CARD_ID.test(id)) return new Response('Not found', { status: 404 });
 
   try {
-    const row = await env.DB.prepare('SELECT image FROM share_cards WHERE id = ?').bind(id).first<{ image: ArrayBuffer }>();
+    const row = await env.DB.prepare('SELECT image FROM share_cards WHERE id = ?').bind(id).first<{ image: number[] | ArrayBuffer }>();
     if (!row?.image) return new Response('Not found', { status: 404 });
-    const bytes = new Uint8Array(row.image);
+    const bytes = Array.isArray(row.image) ? Uint8Array.from(row.image) : new Uint8Array(row.image);
+    if (bytes.byteLength === 0) return new Response('Not found', { status: 404 });
     const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    return new Response(row.image, {
+    return new Response(bytes, {
       headers: {
         'Content-Type': isJpeg ? 'image/jpeg' : 'image/png',
         'Cache-Control': 'public, max-age=2592000, immutable',
