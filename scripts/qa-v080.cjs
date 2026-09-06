@@ -5,7 +5,7 @@ const { chromium } = createRequire(process.env.QA_RUNTIME + '/package.json')('pl
 
 (async () => {
   const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
-  const evidence = 'artifacts/qa-v081';
+  const evidence = process.env.QA_EVIDENCE || 'artifacts/qa-v081';
   fs.mkdirSync(evidence, { recursive: true });
   const results = [];
   try {
@@ -33,8 +33,11 @@ const { chromium } = createRequire(process.env.QA_RUNTIME + '/package.json')('pl
       await page.screenshot({ path: `${evidence}/countdown-${width}.png` });
       await page.locator('.countdown-card').waitFor({ state: 'detached' });
       await page.screenshot({ path: `${evidence}/hud-${width}.png` });
-      const fonts = await page.locator('.hud-score strong, .hud-pitches > span > strong, .combo strong').evaluateAll(nodes => nodes.map(n => getComputedStyle(n).fontSize));
-      assert.equal(new Set(fonts).size, 1, 'HUD numeral font sizes match');
+      const fonts = await page.locator('.arcade-score > strong, .arcade-combo > strong, .arcade-inning > strong').evaluateAll(nodes => nodes.map(n => getComputedStyle(n).fontSize));
+      assert.equal(fonts.length, 3, 'all three metrics rendered');
+      assert(parseFloat(fonts[0]) > parseFloat(fonts[1]), 'score has the primary visual hierarchy');
+      const board = await page.locator('.arcade-board').boundingBox();
+      assert(board.x >= 0 && board.x + board.width <= width, 'scoreboard fits viewport');
       await page.waitForFunction(() => {
         const b = document.querySelector('.baseball')?.getBoundingClientRect();
         const t = document.querySelector('.contact-core')?.getBoundingClientRect();
