@@ -11,7 +11,7 @@ type Screen = 'intro' | 'playing' | 'result';
 type PitchType = '직구' | '커브' | '체인지업';
 type Outcome = 'WHIFF' | 'FOUL' | 'INFIELD_HIT' | 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'HOME_RUN';
 type BatterPhase = 'idle' | 'ready' | 'swing' | 'followThrough';
-type PitcherPhase = 'idle' | 'windup' | 'throw' | 'followThrough';
+type PitcherPhase = 'idle' | 'windup' | 'throw' | 'followThrough' | 'reaction';
 type CatcherPhase = 'idle' | 'prepare' | 'catch' | 'reaction';
 type Countdown = 3 | 2 | 1 | 'PLAY' | null;
 type Pitch = { id: number; type: PitchType; duration: number; startedAt: number };
@@ -19,7 +19,7 @@ type RecordItem = { nickname: string; score: number; homeRuns: number; distance:
 type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launchAngle: number; points: number };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.8.2';
+const APP_VERSION = 'v0.9.0';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
@@ -144,7 +144,8 @@ export default function Home() {
   useEffect(() => {
     const characterAssets = [
       '/utang-batter-v8-strip.png',
-      '/utang-pitcher-v6-strip.png',
+      '/utang-pitcher-v090-strip.png',
+      '/utang-umpire-v091-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
       '/utang-pitcher-authentic.png',
@@ -199,6 +200,7 @@ export default function Home() {
     const nextHomeRuns = homeRuns + (nextContact.outcome === 'HOME_RUN' ? 1 : 0); const nextMaxDistance = Math.max(maxDistance, nextContact.distance);
     statsRef.current = { score: nextScore, homeRuns: nextHomeRuns, maxDistance: nextMaxDistance, maxCombo: nextMaxCombo };
     const isWhiff = nextContact.outcome === 'WHIFF';
+    if (!isWhiff) setPitcherPhase('reaction');
     const isFoul = nextContact.outcome === 'FOUL';
     const catchDelay = Math.max(120, (1 - progress) * pitch.duration + 30);
     if (!isWhiff) setPitch(null);
@@ -242,6 +244,11 @@ export default function Home() {
   const returnHome = useCallback(() => { clearTimers(); setPitch(null); setContact(null); setBallFlying(false); setCountdown(null); setScreen('intro'); }, [clearTimers]);
   const showPitcherFollow = pitcherPhase === 'throw' || pitcherPhase === 'followThrough';
   const showCatcherCatch = catcherPhase === 'catch';
+  // A missed pitch is not called until it has reached the catcher's mitt.
+  const umpireCall = contact?.outcome === 'WHIFF'
+    ? (!pitch ? 'strike' : 'idle')
+    : contact && contact.outcome !== 'FOUL' ? 'fair' : 'idle';
+  const umpire = <div className={`umpire umpire-${umpireCall}`}><span className="sr-only">{umpireCall === 'strike' ? '스트라이크를 선언하는 심판 우땅이' : umpireCall === 'fair' ? '타구를 판정하는 심판 우땅이' : '판정을 기다리는 심판 우땅이'}</span><span className="umpire-sprite" aria-hidden="true" style={{ backgroundPosition: umpireCall === 'strike' ? '50% 0' : umpireCall === 'fair' ? '100% 0' : '0 0' }} /></div>;
 
   return <main className="game-shell"><section className="phone-stage" aria-label="우땅야구 게임 화면">
     {screen === 'intro' && <div className="intro-panel screen-panel">
@@ -260,6 +267,7 @@ export default function Home() {
         <div className="arcade-inning"><img className="arcade-ball-icon" src="/baseball-official-cutout.png" alt="이번 공" /><div className="arcade-pitches" aria-hidden="true">{Array.from({ length: TOTAL_PITCHES }, (_, index) => <i key={index} className={index + 1 === pitchNumber ? 'current' : index < pitchNumber ? 'done' : ''} />)}</div><strong>{String(pitchNumber).padStart(2, '0')}<span> / {TOTAL_PITCHES}</span></strong></div>
       </div>
       <div className="stadium"><img src="/utang-stadium-v5.webp" alt="다양한 우땅이 관중들이 응원하는 야구장" className="stadium-background" /><span className="sr-only">투수 우땅이</span><div aria-hidden="true" className={`pitcher pitcher-${pitcherPhase}`}><span className="pitcher-sprite" style={{ backgroundPosition: showPitcherFollow ? '100% 0' : '0 0' }} /></div>{pitcherPhase === 'throw' && <span className="release-flash" aria-hidden="true" />}<div className="pitch-guide" aria-hidden="true" /><span className="sr-only">{showCatcherCatch ? '공을 잡은 포수 우땅이' : '포수 우땅이'}</span><div aria-hidden="true" className={`catcher catcher-${catcherPhase}`}><span className="catcher-sprite" style={{ backgroundPosition: showCatcherCatch ? '100% 0' : '0 0' }} /></div>
+        {umpire}
         {contact?.outcome === 'HOME_RUN' && <span className="batter-impact-bubble" aria-hidden="true">!!</span>}
         {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
         {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball flying-${contact?.outcome.toLowerCase()}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
