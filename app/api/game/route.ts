@@ -13,9 +13,6 @@ const SESSION_ID = /^[0-9a-f-]{36}$/i;
 const TOTAL_PITCHES = 10;
 const WINDUP_MS = 760;
 const CONTACT_PROGRESS = 0.86;
-// The request reaches the Worker after the player's pointer-down. Compensate
-// a small, fixed amount without trusting a client-supplied timestamp.
-const SWING_INPUT_TRANSIT_MS = 60;
 const PITCHES: Array<{ type: PitchType; duration: number }> = [
   { type: '직구', duration: 1650 }, { type: '커브', duration: 1900 }, { type: '체인지업', duration: 2150 },
 ];
@@ -69,7 +66,9 @@ export async function POST(request: Request) {
     if (action === 'pitch') {
       if (row.pitch_number !== pitchNumber - 1 || row.contact_at !== null) return Response.json({ error: '공 순서가 맞지 않습니다.' }, { status: 409 });
       const config = PITCHES[Math.floor(secureRandom() * PITCHES.length)];
-      const contactAt = Date.now() + WINDUP_MS + config.duration * CONTACT_PROGRESS;
+      // A negative value is the legacy-client fallback. Current clients replace
+      // it with a synchronized target when the ball is actually painted.
+      const contactAt = -(Date.now() + WINDUP_MS + config.duration * CONTACT_PROGRESS);
       const update = await env.DB.prepare(
         'UPDATE game_sessions SET pitch_number = ?, pitch_type = ?, pitch_duration = ?, contact_at = ? WHERE id = ? AND pitch_number = ? AND contact_at IS NULL AND completed_at IS NULL',
       ).bind(pitchNumber, config.type, config.duration, Math.round(contactAt), id, pitchNumber - 1).run();
@@ -77,14 +76,25 @@ export async function POST(request: Request) {
       return Response.json({ pitch: config, windupMs: WINDUP_MS });
     }
 
+    if (action === 'release') {
+      if (row.pitch_number !== pitchNumber || row.contact_at === null || !row.pitch_duration) return Response.json({ error: '진행 중인 공이 없습니다.' }, { status: 409 });
+      if (row.contact_at > 0) return Response.json({ released: true });
+      const contactAt = Math.round(Date.now() + row.pitch_duration * CONTACT_PROGRESS);
+      const update = await env.DB.prepare(
+        'UPDATE game_sessions SET contact_at = ? WHERE id = ? AND pitch_number = ? AND contact_at = ? AND completed_at IS NULL',
+      ).bind(contactAt, id, pitchNumber, row.contact_at).run();
+      if (!update.meta.changes) return Response.json({ error: '공 출발을 맞추지 못했습니다.' }, { status: 409 });
+      return Response.json({ released: true });
+    }
+
     if (action !== 'swing' && action !== 'miss') return Response.json({ error: '지원하지 않는 요청입니다.' }, { status: 400 });
-    if (row.pitch_number !== pitchNumber || !row.contact_at || !row.pitch_duration) return Response.json({ error: '진행 중인 공이 없습니다.' }, { status: 409 });
+    if (row.pitch_number !== pitchNumber || row.contact_at === null || !row.pitch_duration) return Response.json({ error: '진행 중인 공이 없습니다.' }, { status: 409 });
     const now = Date.now();
-    if (action === 'miss' && now < row.contact_at + row.pitch_duration * (1 - CONTACT_PROGRESS) - 50) {
+    const contactAt = Math.abs(row.contact_at);
+    if (action === 'miss' && now < contactAt + row.pitch_duration * (1 - CONTACT_PROGRESS) - 50) {
       return Response.json({ error: '아직 공이 도착하지 않았습니다.' }, { status: 409 });
     }
-    const judgedAt = action === 'swing' ? now - SWING_INPUT_TRANSIT_MS : now;
-    const contact = action === 'miss' ? calculateContact(1) : calculateContact(Math.abs(judgedAt - row.contact_at) / row.pitch_duration);
+    const contact = action === 'miss' ? calculateContact(1) : calculateContact(Math.abs(now - contactAt) / row.pitch_duration);
     const keepsCombo = !['WHIFF', 'FOUL'].includes(contact.outcome);
     const combo = keepsCombo ? row.combo + 1 : 0;
     const maxCombo = Math.max(row.max_combo, combo);

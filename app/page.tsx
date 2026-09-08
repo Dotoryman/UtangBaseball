@@ -204,7 +204,14 @@ export default function Home() {
       if (runId !== gameRunRef.current) return;
       const nextPitch: Pitch = { id: Date.now() + Math.random(), type: config.type, duration: config.duration, startedAt: performance.now() };
       pitchLockedRef.current = false;
-      setPitcherPhase('throw'); setPitch(nextPitch); schedule(() => { if (runId === gameRunRef.current) setPitcherPhase('followThrough'); }, 300);
+      setPitcherPhase('throw'); setPitch(nextPitch);
+      const releaseSessionId = sessionRef.current;
+      if (releaseSessionId) {
+        void postGame<{ released?: boolean }>({ action: 'release', sessionId: releaseSessionId, pitchNumber: nextNumber })
+          .then((data) => { if (!data.released) throw new Error('release-session'); })
+          .catch(() => { if (runId === gameRunRef.current) { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); } });
+      }
+      schedule(() => { if (runId === gameRunRef.current) setPitcherPhase('followThrough'); }, 300);
       schedule(async () => {
         if (runId !== gameRunRef.current || pitchLockedRef.current) return;
         pitchLockedRef.current = true;
