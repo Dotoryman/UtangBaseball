@@ -129,7 +129,6 @@ export default function Home() {
   const [pitchNumber, setPitchNumber] = useState(0); const [pitch, setPitch] = useState<Pitch | null>(null);
   const [pitcherPhase, setPitcherPhase] = useState<PitcherPhase>('idle'); const [batterPhase, setBatterPhase] = useState<BatterPhase>('idle'); const [catcherPhase, setCatcherPhase] = useState<CatcherPhase>('idle');
   const [batterFrame, setBatterFrame] = useState(0);
-  const [pitchPaused, setPitchPaused] = useState(false);
   const [countdown, setCountdown] = useState<Countdown>(null);
   const [score, setScore] = useState(0); const [combo, setCombo] = useState(0); const [maxCombo, setMaxCombo] = useState(0);
   const [homeRuns, setHomeRuns] = useState(0); const [maxDistance, setMaxDistance] = useState(0); const [contact, setContact] = useState<Contact | null>(null);
@@ -184,14 +183,14 @@ export default function Home() {
     const nextRecords = [...loadRecords(), record].sort((a, b) => b.score - a.score).slice(0, 50);
     try { localStorage.setItem('utang-baseball-records', JSON.stringify(nextRecords)); } catch { /* Results still work when browser storage is unavailable. */ }
     setRecords(nextRecords);
-    setPitch(null); setPitchPaused(false); setScreen('result'); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
+    setPitch(null); setScreen('result'); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     fetch('/api/scores?period=daily').then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (Array.isArray(data?.records)) setRecords(data.records); }).catch(() => undefined);
   }, [nickname]);
   const queuePitch = useCallback(async (nextNumber: number, runId = gameRunRef.current) => {
     if (runId !== gameRunRef.current) return;
     pitchLockedRef.current = true;
     releaseReadyRef.current = Promise.resolve(false);
-    setPitchNumber(nextNumber); setPitch(null); setPitchPaused(false); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
+    setPitchNumber(nextNumber); setPitch(null); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     let config = PITCHES[Math.floor(Math.random() * PITCHES.length)];
     const sessionId = await sessionReadyRef.current;
     if (runId !== gameRunRef.current) return;
@@ -231,7 +230,7 @@ export default function Home() {
         const current = canonical ?? { ...statsRef.current, combo: 0 };
         statsRef.current = { score: current.score, homeRuns: current.homeRuns, maxDistance: current.maxDistance, maxCombo: current.maxCombo };
         setScore(current.score); setCombo(0); setMaxCombo(current.maxCombo); setHomeRuns(current.homeRuns); setMaxDistance(current.maxDistance);
-        setPitch(null); setPitchPaused(false); setContact(miss); setBatterPhase('followThrough'); setCatcherPhase('catch');
+        setPitch(null); setContact(miss); setBatterPhase('followThrough'); setCatcherPhase('catch');
         schedule(() => { if (runId === gameRunRef.current) setCatcherPhase('reaction'); }, 300);
         schedule(() => { if (runId !== gameRunRef.current) return; const totals = statsRef.current; if (nextNumber >= TOTAL_PITCHES) finishGame(totals.score, totals.homeRuns, totals.maxDistance); else void queuePitch(nextNumber + 1, runId); }, 940);
       }, nextPitch.duration + 30);
@@ -245,7 +244,7 @@ export default function Home() {
       .then((data) => data.sessionId ?? null)
       .catch(() => null).then((id) => { if (runId !== gameRunRef.current) return null; sessionRef.current = id; return id; });
     releaseReadyRef.current = Promise.resolve(false);
-    setPitch(null); setPitchPaused(false); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
+    setPitch(null); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     setScore(0); setCombo(0); setMaxCombo(0); setHomeRuns(0); setMaxDistance(0); setShareNotice(''); setPitchNumber(0); setScreen('playing'); setCountdown(3);
     schedule(() => { if (runId === gameRunRef.current) setCountdown(2); }, 700); schedule(() => { if (runId === gameRunRef.current) setCountdown(1); }, 1400); schedule(() => { if (runId === gameRunRef.current) setCountdown('PLAY'); }, 2100);
     schedule(() => { if (runId !== gameRunRef.current) return; setCountdown(null); void queuePitch(1, runId); }, 2500);
@@ -255,13 +254,19 @@ export default function Home() {
     const runId = gameRunRef.current; pitchLockedRef.current = true;
     const swingStartedAt = performance.now();
     const swingElapsedMs = Math.round(clamp(swingStartedAt - pitch.startedAt, 0, pitch.duration * 1.25));
-    clearTimers(); setPitchPaused(true); setBatterPhase('swing'); setBatterFrame(2); setPitcherPhase('followThrough');
+    clearTimers(); setBatterPhase('swing'); setBatterFrame(2); setPitcherPhase('followThrough');
     // Change pose in the input frame, then reach the contact drawing quickly
     // enough that the bat feels attached to a mobile pointer-down gesture.
     [3, 4, 5, 6, 7].forEach((frame, index) => schedule(() => { if (runId === gameRunRef.current) setBatterFrame(frame); }, [22, 48, 78, 114, 158][index]));
     schedule(() => { if (runId !== gameRunRef.current) return; setBatterFrame(7); setBatterPhase('followThrough'); }, 210);
     const progress = clamp((performance.now() - pitch.startedAt) / pitch.duration, 0, 1.14);
     let nextContact = calculateContact(measureVisualSwingError() ?? Math.abs(progress - CONTACT_PROGRESS));
+    const previewMakesContact = !['WHIFF', 'FOUL'].includes(nextContact.outcome);
+    let previewLaunched = false;
+    if (previewMakesContact) schedule(() => {
+      if (runId !== gameRunRef.current) return;
+      previewLaunched = true; setPitch(null); setBallFlying(true);
+    }, SWING_CONTACT_FRAME_MS);
     let canonical: GameStats | null = null;
     if (sessionRef.current) {
       try {
@@ -282,10 +287,9 @@ export default function Home() {
     if (!isWhiff) setPitcherPhase('reaction');
     const isFoul = nextContact.outcome === 'FOUL';
     const catchDelay = Math.max(120, (1 - progress) * pitch.duration + 30);
-    setPitchPaused(false);
     if (!isWhiff) setPitch(null);
-    setContact(nextContact); setCombo(nextCombo); setMaxCombo(nextMaxCombo); setScore(nextScore); setHomeRuns(nextHomeRuns); setMaxDistance(nextMaxDistance); setBallFlying(!isWhiff && !isFoul && nextContact.outcome !== 'HOME_RUN'); setCatcherPhase(isWhiff ? 'prepare' : 'reaction');
-    if (nextContact.outcome === 'HOME_RUN') schedule(() => setBallFlying(true), 180);
+    setContact(nextContact); setCombo(nextCombo); setMaxCombo(nextMaxCombo); setScore(nextScore); setHomeRuns(nextHomeRuns); setMaxDistance(nextMaxDistance); setBallFlying(!isWhiff && !isFoul && (nextContact.outcome !== 'HOME_RUN' || previewLaunched)); setCatcherPhase(isWhiff ? 'prepare' : 'reaction');
+    if (nextContact.outcome === 'HOME_RUN' && !previewLaunched) schedule(() => setBallFlying(true), 180);
     if (isWhiff) schedule(() => { setPitch(null); setCatcherPhase('catch'); }, catchDelay);
     const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 2100 : 1120;
     schedule(() => { if (runId !== gameRunRef.current) return; setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else void queuePitch(pitchNumber + 1, runId); }, finishDelay);
@@ -326,7 +330,7 @@ export default function Home() {
     shareBusy.current = false;
     window.setTimeout(() => setShareNotice(''), 2400);
   }, [homeRuns, maxCombo, maxDistance, nickname, score]);
-  const returnHome = useCallback(() => { gameRunRef.current += 1; pitchLockedRef.current = true; clearTimers(); sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); releaseReadyRef.current = Promise.resolve(false); shareCardRef.current = null; setPitch(null); setPitchPaused(false); setContact(null); setBallFlying(false); setCountdown(null); setScreen('intro'); }, [clearTimers]);
+  const returnHome = useCallback(() => { gameRunRef.current += 1; pitchLockedRef.current = true; clearTimers(); sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); releaseReadyRef.current = Promise.resolve(false); shareCardRef.current = null; setPitch(null); setContact(null); setBallFlying(false); setCountdown(null); setScreen('intro'); }, [clearTimers]);
   const showPitcherFollow = pitcherPhase === 'throw' || pitcherPhase === 'followThrough';
   const showCatcherCatch = catcherPhase === 'catch';
   // A missed pitch is not called until it has reached the catcher's mitt.
@@ -355,7 +359,7 @@ export default function Home() {
         {umpire}
         {contact?.outcome === 'HOME_RUN' && <span className="batter-impact-bubble" aria-hidden="true">!!</span>}
         {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
-        {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'} ${pitchPaused ? 'pitch-paused' : ''}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball flying-${contact?.outcome.toLowerCase()}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
+        {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball ${contact ? `flying-${contact.outcome.toLowerCase()}` : 'flying-preview'}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
         <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span><span className="batter-sprite-v6" aria-hidden="true" style={{ backgroundPosition: `${(batterFrame / (BATTER_FRAMES.length - 1)) * 100}% 0` }} />{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
         {pitch && !contact && <div className="pitch-label">{pitch.type}</div>}{!pitch && !contact && !countdown && <div className="ready-label">투수 준비 중</div>}{contact && <div className={`judgment judgment-${RESULT_META[contact.outcome].tier}`}><strong>{RESULT_META[contact.outcome].label}</strong>{contact.distance > 0 && <span>{contact.distance}m · {contact.exitVelocity}km/h</span>}</div>}
         {!countdown && !contact && <div className="swing-cue"><span className="tap-ring"><i /></span><strong>탭!</strong><small>SPACE</small></div>}{countdown && <div className="countdown-overlay" aria-live="assertive"><div className="countdown-card"><span className="countdown-kicker">UTANG BASEBALL</span><span className="countdown-friend countdown-friend-left" aria-hidden="true"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="countdown-friend countdown-friend-right" aria-hidden="true"><img src="/utang-sticker-chill-v071.png" alt="" /></span><div className="countdown-mascot"><span className="countdown-mascot-glow" aria-hidden="true" /><img src="/utang-countdown-v071.png" alt="야구공을 안고 준비하는 우땅이" /></div><small>우땅이의 야구 도전</small><strong key={countdown}>{countdown}</strong><b>{countdown === 'PLAY' ? 'PLAY BALL!' : '타격 준비'}</b><div className="countdown-dots" aria-hidden="true"><i className="active" /><i className={countdown === 2 || countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /><i className={countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /></div></div></div>}

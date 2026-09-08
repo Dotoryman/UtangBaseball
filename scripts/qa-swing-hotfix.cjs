@@ -35,20 +35,22 @@ const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, mil
       await page.goto('http://127.0.0.1:8787/?qa=swing-hotfix');
       await page.getByRole('button', { name: 'PLAY BALL!', exact: true }).click();
       await page.locator('.baseball').waitFor({ timeout: 10000 });
-      await page.waitForTimeout(650);
+      await page.waitForFunction(() => {
+        const ball = document.querySelector('.baseball')?.getBoundingClientRect();
+        const target = document.querySelector('.contact-core')?.getBoundingClientRect();
+        return ball && target && Math.hypot(ball.x + ball.width / 2 - target.x - target.width / 2, ball.y + ball.height / 2 - target.y - target.height / 2) < 9;
+      }, {}, { polling: 'raf', timeout: 5000 });
       await page.locator('.play-field').dispatchEvent('pointerdown', { pointerType: 'mouse', button: 0, isPrimary: true });
-      await page.waitForTimeout(80);
+      await page.waitForTimeout(110);
 
-      assert.equal(await page.locator('.baseball.pitch-paused').count(), 1, 'incoming ball must pause in the input frame');
-      const frozenA = await page.locator('.baseball').boundingBox();
-      await page.waitForTimeout(260);
-      const frozenB = await page.locator('.baseball').boundingBox();
-      assert(frozenA && frozenB);
-      assert(Math.abs(frozenA.x - frozenB.x) < 0.75 && Math.abs(frozenA.y - frozenB.y) < 0.75, `ball moved while awaiting verdict: ${JSON.stringify({ frozenA, frozenB })}`);
-      assert.notEqual(await page.locator('.batter-sprite-v6').evaluate((node) => getComputedStyle(node).backgroundPosition), '28.5714% 0px', 'bat animation must continue while the ball is paused');
+      assert.equal(await page.locator('.baseball').count(), 0, 'incoming ball must leave on the bat contact frame');
+      assert.equal(await page.locator('.flying-ball.flying-preview').count(), 1, 'outgoing ball must launch before the delayed verdict');
+      assert.equal(await page.locator('.judgment').count(), 0, 'the preview must not expose a verdict before the server responds');
+      assert.notEqual(await page.locator('.batter-sprite-v6').evaluate((node) => getComputedStyle(node).backgroundPosition), '28.5714% 0px', 'bat animation must continue while the outgoing ball launches');
 
-      await page.locator('.flying-ball').waitFor({ timeout: 3000 });
+      await page.locator('.judgment').waitFor({ timeout: 3000 });
       assert.equal(await page.locator('.baseball').count(), 0, 'incoming ball must disappear when contact is confirmed');
+      assert.equal(await page.locator('.flying-ball').count(), 1, 'only one outgoing ball may remain after contact is confirmed');
       assert.equal(actions.indexOf('release') < actions.indexOf('swing'), true, `release must finish before swing: ${actions.join(',')}`);
       assert.equal(typeof swingPayload?.swingElapsedMs, 'number');
       assert(swingPayload.swingElapsedMs > 0 && swingPayload.swingElapsedMs < 2063);
