@@ -58,12 +58,14 @@
 }
 .intro-ranking-head .ranking-title { letter-spacing: -.55px; }
 
-.about-card { border: 3px solid #4b2d20; border-radius: 24px 19px 26px 21px; box-shadow: 7px 8px 0 #70442e, 0 24px 70px rgb(43 25 17 / 24%); }
-.about-card > img { width: 92px; height: 82px; object-fit: contain; border-radius: 0; }
+.about-card { width: min(370px, calc(100% + 16px)); max-width: 370px; border: 3px solid #4b2d20; border-radius: 24px 19px 26px 21px; box-shadow: 7px 8px 0 #70442e, 0 24px 70px rgb(43 25 17 / 24%); }
+.about-card > img { display: block; width: 118px; height: 102px; margin: 0 auto; object-fit: contain; object-position: center; border-radius: 0; }
 .about-card h2 { margin: 5px 0 13px; font-size: 24px; font-weight: 950; letter-spacing: -1.2px; }
 .about-intro { margin: 0; color: #614939; font-size: 14px; font-weight: 750; line-height: 1.65; }
-.about-notice { margin: 16px 0 13px; padding: 12px 13px; text-align: left; color: #735846; background: #f5e6cf; border: 1px dashed #a77a58; border-radius: 13px 10px 14px 11px; font-size: 12px; font-weight: 700; line-height: 1.55; }
+.about-intro span { white-space: nowrap; }
+.about-notice { margin: 16px 0 13px; padding: 12px 13px; text-align: center; color: #735846; background: #f5e6cf; border: 1px dashed #a77a58; border-radius: 13px 10px 14px 11px; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .about-notice p { margin: 0; }
+.about-notice p span { white-space: nowrap; }
 .about-notice p + p { margin-top: 7px; }
 .about-contact { margin: 0 0 15px; color: #6b5140; font-size: 13px; font-weight: 800; line-height: 1.55; }
 .about-contact a { color: #a94f32; font-size: 15px; font-weight: 950; text-underline-offset: 3px; }
