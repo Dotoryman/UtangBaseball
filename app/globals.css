@@ -506,11 +506,12 @@ button { -webkit-tap-highlight-color: transparent; }
 .batter-result-miss .batter-reaction { width: 174px; height: 174px; inset: 32px auto auto 29px; }
 .batter-result-foul .batter-reaction { width: 198px; height: 184px; inset: 27px auto auto 15px; }
 .pitch-label, .ready-label { top: 82px; }
-.swing-cue { position: absolute; z-index: 45; right: 12px; bottom: 13px; height: 40px; display: flex; align-items: center; gap: 6px; padding: 5px 9px 5px 6px; color: white; background: rgb(5 29 67 / 78%); border: 1px solid rgb(255 255 255 / 25%); border-radius: 999px; box-shadow: 0 5px 15px rgb(0 22 53 / 25%); backdrop-filter: blur(5px); pointer-events: none; }
-.swing-cue .tap-ring { width: 28px; height: 28px; border: 2px solid #ffe05e; }
-.swing-cue .tap-ring i { width: 10px; height: 10px; background: #ffe05e; }
-.swing-cue strong { font-size: 11px; }
-.swing-cue small { padding: 3px 5px; color: #bfd6f4; background: rgb(255 255 255 / 9%); border-radius: 5px; font-size: 7px; }
+.swing-cue { position: absolute; z-index: 45; top: 114px; right: 10px; bottom: auto; height: 29px; display: flex; align-items: center; gap: 4px; padding: 3px 7px 3px 4px; color: white; background: rgb(5 29 67 / 74%); border: 1px solid rgb(255 255 255 / 25%); border-radius: 999px; box-shadow: 0 3px 9px rgb(0 22 53 / 20%); backdrop-filter: blur(5px); pointer-events: none; }
+.swing-cue .tap-ring { width: 21px; height: 21px; border: 2px solid #ffe05e; }
+.swing-cue .tap-ring i { width: 7px; height: 7px; background: #ffe05e; }
+.swing-cue strong { font-size: 10px; }
+.swing-cue small { padding: 2px 4px; color: #bfd6f4; background: rgb(255 255 255 / 9%); border-radius: 4px; font-size: 6px; }
+@media (max-width: 380px) { .swing-cue { top: 109px; right: 7px; } .swing-cue small { display: none; } }
 .result-panel { height: 100%; padding-top: 0; }
 .result-topbar { padding-inline: 0; }
 
