@@ -1,13 +1,15 @@
 import { env } from 'cloudflare:workers';
 import { BodyTooLargeError, readLimitedJson } from '@/lib/request-body';
-import { calculateEarnedScore, isBatType, type BatType } from '@/lib/daily-bat';
+import { calculateEarnedScore, koreanDayStart, type BatType } from '@/lib/daily-bat';
+import { batProgress, playerIdentity } from '@/lib/player-session';
 
 type PitchType = '직구' | '커브' | '체인지업';
 type Outcome = 'WHIFF' | 'FOUL' | 'INFIELD_HIT' | 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'HOME_RUN';
 type SessionRow = {
   id: string; nickname: string; pitch_number: number; pitch_type: PitchType | null;
   pitch_duration: number | null; contact_at: number | null; score: number; combo: number;
-  max_combo: number; home_runs: number; max_distance: number; completed_at: number | null; bat_type: BatType;
+  max_combo: number; home_runs: number; max_distance: number; completed_at: number | null;
+  bat_type: BatType; player_id: string | null;
 };
 
 const SESSION_ID = /^[0-9a-f-]{36}$/i;
@@ -48,15 +50,21 @@ export async function POST(request: Request) {
     const action = body.action;
     if (action === 'start') {
       const nickname = (typeof body.nickname === 'string' ? body.nickname.trim() : '') || '우땅이';
-      const batType: BatType = isBatType(body.batType) ? body.batType : 'basic';
       if (nickname.length > 10) return Response.json({ error: '닉네임을 확인해줘.' }, { status: 400 });
+      const identity = playerIdentity(request);
       const id = crypto.randomUUID();
       const now = Date.now();
+      const dayStart = koreanDayStart(now);
+      const completed = await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM scores WHERE player_id = ? AND played_at >= ?',
+      ).bind(identity.playerId, dayStart).first<{ count: number }>();
+      const progress = batProgress(completed?.count ?? 0, now);
       await env.DB.batch([
         env.DB.prepare('DELETE FROM game_sessions WHERE created_at < ?').bind(now - 2 * 60 * 60 * 1000),
-        env.DB.prepare('INSERT INTO game_sessions (id, nickname, created_at, bat_type) VALUES (?, ?, ?, ?)').bind(id, nickname, now, batType),
+        env.DB.prepare('INSERT INTO game_sessions (id, nickname, created_at, bat_type, player_id) VALUES (?, ?, ?, ?, ?)').bind(id, nickname, now, progress.equippedBat, identity.playerId),
       ]);
-      return Response.json({ sessionId: id }, { status: 201 });
+      const headers = identity.setCookie ? { 'Set-Cookie': identity.setCookie } : undefined;
+      return Response.json({ sessionId: id, batType: progress.equippedBat, completedGames: progress.completedGames, dayStart: progress.dayStart }, { status: 201, headers });
     }
 
     const id = sessionId(body);
@@ -122,11 +130,18 @@ export async function POST(request: Request) {
     const update = completedAt
       ? (await env.DB.batch([
           updateStatement,
-          env.DB.prepare('INSERT OR IGNORE INTO scores (nickname, score, home_runs, distance, played_at, session_id) SELECT nickname, score, home_runs, max_distance, completed_at, id FROM game_sessions WHERE id = ? AND completed_at = ?').bind(id, completedAt),
+          env.DB.prepare('INSERT OR IGNORE INTO scores (nickname, score, home_runs, distance, played_at, session_id, player_id) SELECT nickname, score, home_runs, max_distance, completed_at, id, player_id FROM game_sessions WHERE id = ? AND completed_at = ?').bind(id, completedAt),
         ]))[0]
       : await updateStatement.run();
     if (!update.meta.changes) return Response.json({ error: '이미 판정된 공입니다.' }, { status: 409 });
-    return Response.json({ contact, stats: { score, combo, maxCombo, homeRuns, maxDistance }, completed: Boolean(completedAt) });
+    let dailyBat = null;
+    if (completedAt && row.player_id) {
+      const completed = await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM scores WHERE player_id = ? AND played_at >= ?',
+      ).bind(row.player_id, koreanDayStart(completedAt)).first<{ count: number }>();
+      dailyBat = batProgress(completed?.count ?? 0, completedAt);
+    }
+    return Response.json({ contact, stats: { score, combo, maxCombo, homeRuns, maxDistance }, completed: Boolean(completedAt), dailyBat });
   } catch (error) {
     if (error instanceof BodyTooLargeError) return Response.json({ error: '요청이 너무 큽니다.' }, { status: 413 });
     if (error instanceof SyntaxError) return Response.json({ error: '잘못된 요청입니다.' }, { status: 400 });

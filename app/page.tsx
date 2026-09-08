@@ -19,10 +19,12 @@ type Pitch = { id: number; type: PitchType; duration: number; startedAt: number 
 type RecordItem = { nickname: string; score: number; homeRuns: number; distance: number; playedAt: number };
 type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launchAngle: number; points: number };
 type GameStats = { score: number; combo: number; maxCombo: number; homeRuns: number; maxDistance: number };
-type JudgmentResponse = { contact: Contact; stats: GameStats; completed: boolean };
+type ServerBatProgress = { dayStart: number; completedGames: number; equippedBat: BatType; reward: BatReward | null };
+type JudgmentResponse = { contact: Contact; stats: GameStats; completed: boolean; dailyBat?: ServerBatProgress | null };
+type StartResponse = { sessionId?: string; batType?: BatType; completedGames?: number; dayStart?: number };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.9.3';
+const APP_VERSION = 'v1.0.0';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
 const DAILY_BAT_STORAGE_KEY = 'utang-baseball-daily-bat-v1';
 const BAT_SPRITES: Record<BatType, string> = {
@@ -95,6 +97,10 @@ function missPoseForBat(bat: BatType) {
 function followPoseForBat(bat: BatType) {
   return bat === 'gold' ? '/utang-batter-v8-gold-follow.png' : bat === 'diamond' ? '/utang-batter-v8-diamond-follow.png' : RESULT_META.HOME_RUN.pose;
 }
+function triggerHitHaptic(outcome: Outcome) {
+  if (outcome === 'WHIFF' || typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+  navigator.vibrate(outcome === 'HOME_RUN' ? [32, 24, 52] : outcome === 'FOUL' ? 12 : 22);
+}
 async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); return true; } catch {
     const field = document.createElement('textarea'); field.value = text; field.style.position = 'fixed'; field.style.opacity = '0';
@@ -157,6 +163,8 @@ export default function Home() {
   const [ballFlying, setBallFlying] = useState(false); const [records, setRecords] = useState<RecordItem[]>([]); const [shareNotice, setShareNotice] = useState('');
   const [showHelp, setShowHelp] = useState(false); const [rankingPage, setRankingPage] = useState(0);
   const [activeBat, setActiveBat] = useState<BatType>('basic'); const [batReward, setBatReward] = useState<BatReward | null>(null);
+  const [dailyBatState, setDailyBatState] = useState<DailyBatState>(() => createDailyBatState());
+  const [networkNotice, setNetworkNotice] = useState('');
   const shareBusy = useRef(false);
   const shareCardRef = useRef<{ sessionId: string; cardId: string } | null>(null);
   const sessionRef = useRef<string | null>(null); const sessionReadyRef = useRef<Promise<string | null>>(Promise.resolve(null));
@@ -187,6 +195,7 @@ export default function Home() {
     const refresh = () => {
       const state = loadDailyBatState();
       saveDailyBatState(state);
+      setDailyBatState(state);
       clearTimeout(timer);
       timer = setTimeout(refresh, state.dayStart + 86_400_000 - Date.now() + 100);
     };
@@ -208,10 +217,6 @@ export default function Home() {
       '/utang-umpire-v091-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
-      '/utang-pitcher-authentic.png',
-      '/utang-pitcher-follow-v2.png',
-      '/utang-catcher-authentic.png',
-      '/utang-catcher-catch-v4.png',
       '/utang-pose-good-authentic.png',
       '/utang-pose-miss-v071.png',
       '/utang-pose-foul-authentic.png',
@@ -221,14 +226,22 @@ export default function Home() {
     characterAssets.forEach((src) => { const image = new Image(); image.src = src; });
   }, []);
   useEffect(() => () => { gameRunRef.current += 1; clearTimers(); }, [clearTimers]);
-  const finishGame = useCallback((finalScore: number, finalHomeRuns: number, finalDistance: number) => {
+  useEffect(() => {
+    if (!networkNotice) return;
+    const timer = window.setTimeout(() => setNetworkNotice(''), 3200);
+    return () => window.clearTimeout(timer);
+  }, [networkNotice]);
+  const finishGame = useCallback((finalScore: number, finalHomeRuns: number, finalDistance: number, serverProgress?: ServerBatProgress | null) => {
     if (completedRunRef.current === gameRunRef.current) return;
     completedRunRef.current = gameRunRef.current;
     const record: RecordItem = { nickname: nickname.trim() || '우땅이', score: finalScore, homeRuns: finalHomeRuns, distance: finalDistance, playedAt: Date.now() };
     const nextRecords = [...loadRecords(), record].sort((a, b) => b.score - a.score).slice(0, 50);
     try { localStorage.setItem('utang-baseball-records', JSON.stringify(nextRecords)); } catch { /* Results still work when browser storage is unavailable. */ }
-    const completion = completeDailyGame(loadDailyBatState());
+    const completion = serverProgress
+      ? { state: { dayStart: serverProgress.dayStart, completedGames: serverProgress.completedGames, equippedBat: serverProgress.equippedBat }, reward: serverProgress.reward }
+      : completeDailyGame(loadDailyBatState());
     saveDailyBatState(completion.state);
+    setDailyBatState(completion.state);
     setBatReward(completion.reward);
     setRecords(nextRecords);
     setPitch(null); setScreen('result'); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
@@ -268,11 +281,12 @@ export default function Home() {
         pitchLockedRef.current = true;
         let miss: Contact = { outcome: 'WHIFF', distance: 0, exitVelocity: 0, launchAngle: 0, points: 0 };
         let canonical: GameStats | null = null;
+        let serverProgress: ServerBatProgress | null = null;
         if (sessionRef.current) {
           try {
             const data = await postGame<JudgmentResponse>({ action: 'miss', sessionId: sessionRef.current, pitchNumber: nextNumber });
-            if (data?.contact && data.stats) { miss = data.contact; canonical = data.stats; } else throw new Error('miss-session');
-          } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); }
+            if (data?.contact && data.stats) { miss = data.contact; canonical = data.stats; serverProgress = data.dailyBat ?? null; } else throw new Error('miss-session');
+          } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); setNetworkNotice('서버가 잠깐 졸았어. 이번 기록은 기기에 남길게!'); }
         }
         if (runId !== gameRunRef.current) return;
         const current = canonical ?? { ...statsRef.current, combo: 0 };
@@ -280,7 +294,7 @@ export default function Home() {
         setScore(current.score); setCombo(0); setMaxCombo(current.maxCombo); setHomeRuns(current.homeRuns); setMaxDistance(current.maxDistance);
         setPitch(null); setContact(miss); setBatterPhase('followThrough'); setCatcherPhase('catch');
         schedule(() => { if (runId === gameRunRef.current) setCatcherPhase('reaction'); }, 300);
-        schedule(() => { if (runId !== gameRunRef.current) return; const totals = statsRef.current; if (nextNumber >= TOTAL_PITCHES) finishGame(totals.score, totals.homeRuns, totals.maxDistance); else void queuePitch(nextNumber + 1, runId); }, 940);
+        schedule(() => { if (runId !== gameRunRef.current) return; const totals = statsRef.current; if (nextNumber >= TOTAL_PITCHES) finishGame(totals.score, totals.homeRuns, totals.maxDistance, serverProgress); else void queuePitch(nextNumber + 1, runId); }, 940);
       }, nextPitch.duration + 30);
     }, WINDUP_MS);
   }, [finishGame, schedule]);
@@ -289,12 +303,20 @@ export default function Home() {
     const runId = ++gameRunRef.current; pitchLockedRef.current = true;
     const playerName = nickname.trim() || '우땅이';
     const batState = loadDailyBatState(); saveDailyBatState(batState); setActiveBat(batState.equippedBat); setBatReward(null);
-    sessionReadyRef.current = postGame<{ sessionId?: string }>({ action: 'start', nickname: playerName, batType: batState.equippedBat })
-      .then((data) => data.sessionId ?? null)
-      .catch(() => null).then((id) => { if (runId !== gameRunRef.current) return null; sessionRef.current = id; return id; });
+    sessionReadyRef.current = postGame<StartResponse>({ action: 'start', nickname: playerName })
+      .then((data) => {
+        if (runId !== gameRunRef.current) return null;
+        if (data.batType && typeof data.completedGames === 'number' && typeof data.dayStart === 'number') {
+          const synced = normalizeDailyBatState({ dayStart: data.dayStart, completedGames: data.completedGames, equippedBat: data.batType });
+          saveDailyBatState(synced); setDailyBatState(synced); setActiveBat(synced.equippedBat);
+        }
+        return data.sessionId ?? null;
+      })
+      .catch(() => { if (runId === gameRunRef.current) setNetworkNotice('서버가 잠깐 졸았어. 이번 기록은 기기에 남길게!'); return null; })
+      .then((id) => { if (runId !== gameRunRef.current) return null; sessionRef.current = id; return id; });
     releaseReadyRef.current = Promise.resolve(false);
     setPitch(null); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
-    setScore(0); setCombo(0); setMaxCombo(0); setHomeRuns(0); setMaxDistance(0); setShareNotice(''); setPitchNumber(0); setScreen('playing'); setCountdown(3);
+    setScore(0); setCombo(0); setMaxCombo(0); setHomeRuns(0); setMaxDistance(0); setShareNotice(''); setNetworkNotice(''); setPitchNumber(0); setScreen('playing'); setCountdown(3);
     schedule(() => { if (runId === gameRunRef.current) setCountdown(2); }, 700); schedule(() => { if (runId === gameRunRef.current) setCountdown(1); }, 1400); schedule(() => { if (runId === gameRunRef.current) setCountdown('PLAY'); }, 2100);
     schedule(() => { if (runId !== gameRunRef.current) return; setCountdown(null); void queuePitch(1, runId); }, 2500);
   }, [clearTimers, nickname, queuePitch, schedule]);
@@ -312,22 +334,25 @@ export default function Home() {
     let nextContact = calculateContact(measureVisualSwingError() ?? Math.abs(progress - CONTACT_PROGRESS));
     const previewMakesContact = !['WHIFF', 'FOUL'].includes(nextContact.outcome);
     let previewLaunched = false;
+    let previewHaptic = false;
     if (previewMakesContact) schedule(() => {
       if (runId !== gameRunRef.current) return;
-      previewLaunched = true; setPitch(null); setBallFlying(true);
+      previewLaunched = true; previewHaptic = true; triggerHitHaptic(nextContact.outcome); setPitch(null); setBallFlying(true);
     }, SWING_CONTACT_FRAME_MS);
     let canonical: GameStats | null = null;
+    let serverProgress: ServerBatProgress | null = null;
     if (sessionRef.current) {
       try {
         await releaseReadyRef.current;
         if (!sessionRef.current) throw new Error('release-session');
         const data = await postGame<JudgmentResponse>({ action: 'swing', sessionId: sessionRef.current, pitchNumber, swingElapsedMs });
-        if (data?.contact && data.stats) { nextContact = data.contact; canonical = data.stats; } else throw new Error('swing-session');
-      } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); }
+        if (data?.contact && data.stats) { nextContact = data.contact; canonical = data.stats; serverProgress = data.dailyBat ?? null; } else throw new Error('swing-session');
+      } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); setNetworkNotice('서버가 잠깐 졸았어. 이번 기록은 기기에 남길게!'); }
     }
     const contactFrameDelay = SWING_CONTACT_FRAME_MS - (performance.now() - swingStartedAt);
     if (contactFrameDelay > 0) await new Promise((resolve) => window.setTimeout(resolve, contactFrameDelay));
     if (runId !== gameRunRef.current) return;
+    if (!previewHaptic) triggerHitHaptic(nextContact.outcome);
     const keepsCombo = !['WHIFF', 'FOUL'].includes(nextContact.outcome); const nextCombo = canonical?.combo ?? (keepsCombo ? combo + 1 : 0); const nextMaxCombo = canonical?.maxCombo ?? Math.max(maxCombo, nextCombo);
     const earned = calculateEarnedScore(nextContact.points, nextCombo, activeBat); const nextScore = canonical?.score ?? score + earned;
     const nextHomeRuns = canonical?.homeRuns ?? homeRuns + (nextContact.outcome === 'HOME_RUN' ? 1 : 0); const nextMaxDistance = canonical?.maxDistance ?? Math.max(maxDistance, nextContact.distance);
@@ -341,7 +366,7 @@ export default function Home() {
     if (nextContact.outcome === 'HOME_RUN' && !previewLaunched) schedule(() => setBallFlying(true), 180);
     if (isWhiff) schedule(() => { setPitch(null); setCatcherPhase('catch'); }, catchDelay);
     const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 2100 : 1120;
-    schedule(() => { if (runId !== gameRunRef.current) return; setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else void queuePitch(pitchNumber + 1, runId); }, finishDelay);
+    schedule(() => { if (runId !== gameRunRef.current) return; setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance, serverProgress); else void queuePitch(pitchNumber + 1, runId); }, finishDelay);
   }, [activeBat, batterPhase, clearTimers, combo, contact, countdown, finishGame, homeRuns, maxCombo, maxDistance, pitch, pitchNumber, queuePitch, schedule, score, screen]);
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape' && showHelp) { event.preventDefault(); setShowHelp(false); return; } if (screen === 'playing' && ['Space', 'Enter'].includes(event.code) && !event.repeat && !(event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], .hud-home'))) { event.preventDefault(); void resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing, screen, showHelp]);
 
@@ -394,6 +419,7 @@ export default function Home() {
       <div className="intro-scene"><span className="intro-halo" aria-hidden="true" /><div className="intro-stickers" aria-hidden="true"><span className="sticker-bubble sticker-wave"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="sticker-bubble sticker-chill"><img src="/utang-sticker-chill-v071.png" alt="" /></span><span className="sticker-bubble sticker-ball"><img src="/utang-countdown-v071.png" alt="" /></span><span className="sticker-bubble sticker-clover"><img src="/utang-sticker-clover-v091.png" alt="" /></span></div><div className="hero-sprite" aria-hidden="true" /><span className="hero-spark spark-one">✦</span><span className="hero-spark spark-two">✦</span></div>
       <div className="intro-copy"><span className="intro-callout">공 온다!</span><h1>우땅아, 잘 보고<br /><em>냅다 휘둘러!</em></h1><p>기회는 딱 10번. 하나쯤은 넘어가겠지!</p></div>
       <form className="nickname-form" onSubmit={startGame}><label htmlFor="nickname" className="sr-only">닉네임</label><Input id="nickname" maxLength={10} value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="우땅이" autoComplete="nickname" className="nickname-input" /><Button type="submit" className="start-button playful-action"><Play size={17} fill="currentColor" /> 일단 쳐보자!</Button></form>
+      <section className="bat-collection" aria-label="오늘 모은 배트"><div className="bat-collection-head"><strong>오늘 모은 배트</strong><span>{Math.min(3, dailyBatState.completedGames + 1)} / 3</span></div><div className="bat-collection-list"><div className="bat-slot is-owned"><img className="bat-thumb bat-thumb-basic" src="/utang-bat-gold-v093.png" alt="" /><span>기본</span></div><div className={`bat-slot ${dailyBatState.completedGames >= 1 ? 'is-owned' : 'is-locked'}`}><img className="bat-thumb" src="/utang-bat-gold-v093.png" alt="" /><span>황금</span></div><div className={`bat-slot ${dailyBatState.completedGames >= 2 ? 'is-owned' : 'is-locked'}`}><img className="bat-thumb" src="/utang-bat-diamond-v093.png" alt="" /><span>다이아</span></div></div></section>
       <div className="intro-ranking"><div className="intro-ranking-head"><div className="ranking-title"><Trophy size={17} /> 오늘 제일 잘 친 우땅이</div><span>매일 00:00 · 5명씩</span></div>{records.length > 0 ? visibleRecords.map((item, index) => { const rankNumber = rankingPage * RANKING_PAGE_SIZE + index + 1; return <div className={`ranking-row rank-${rankNumber}`} key={`${item.playedAt}-${rankNumber}`}><b>{rankNumber}</b><span>{item.nickname}</span><strong>{item.score.toLocaleString()}점</strong></div>; }) : <p className="ranking-empty">아직 아무도 못 쳤어. 네가 먼저 해!</p>}{rankingPageCount > 1 && <div className="ranking-pagination"><button type="button" onClick={() => setRankingPage((page) => Math.max(0, page - 1))} disabled={rankingPage === 0} aria-label="이전 순위"><ChevronLeft size={16} /></button><span>{rankingPage + 1} / {rankingPageCount}</span><button type="button" onClick={() => setRankingPage((page) => Math.min(rankingPageCount - 1, page + 1))} disabled={rankingPage === rankingPageCount - 1} aria-label="다음 순위"><ChevronRight size={16} /></button></div>}</div>
       <footer className="intro-footer"><span>{APP_VERSION}</span><i aria-hidden="true" /> <span>Made by Dotoryman</span></footer>
       {showHelp && <dialog open className="help-overlay" aria-label="우땅야구 소개"><div className="help-card about-card"><button type="button" className="help-close" onClick={() => setShowHelp(false)} aria-label="닫기"><X size={20} /></button><img src="/utang-sticker-messy-v093.png" alt="이불을 들고 웃는 부시시 우땅이" /><h2>우땅야구 만든 사람</h2><p className="about-intro"><span>안녕하세요, 제작자 <b>dotoryman</b>입니다.</span><br /><span>우땅이가 너무 귀여워서</span><br /><span>우땅이 야구게임을 만들어봤어요.</span><br /><span>즐겁게 플레이해보세요!</span></p><div className="about-notice"><p><span>우땅랜드와 마찬가지로</span><br /><span>영리적인 목적의 페이지가 아닙니다.</span></p><p><span>우땅이 캐릭터의 저작권은</span><br /><span>원작자 <b>소콘소콘</b>님께 있습니다.</span></p></div><p className="about-contact">개선 요청사항은 Instagram DM<br /><a href="https://www.instagram.com/dotoryman/" target="_blank" rel="noreferrer">@dotoryman</a>으로 보내주세요.</p><Button className="start-button about-thanks" onClick={() => setShowHelp(false)}>찾아줘서 고마어!</Button></div></dialog>}
@@ -417,5 +443,6 @@ export default function Home() {
     {screen === 'result' && <div className="result-panel screen-panel"><header className="result-topbar"><button type="button" className="intro-brand brand-home" onClick={returnHome} aria-label="우땅야구 시작 화면"><img src="/utang-sun-logo.png" alt="햇님 우땅이" /><strong>우땅야구</strong></button></header><div className="result-emotes" aria-hidden="true"><span className="result-emote result-emote-wave"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="result-emote result-emote-chill"><img src="/utang-sticker-chill-v071.png" alt="" /></span><span className="result-emote result-emote-ball"><img src="/utang-countdown-v071.png" alt="" /></span><span className="result-emote result-emote-sun result-emote-clover"><img src="/utang-sticker-clover-v091.png" alt="" /></span></div><p className="badge">다 쳤다!</p><div className="result-character"><span className="result-burst" /><img src={resultImage} alt="경기를 마친 우땅이" className={`result-image ${homeRuns > 0 ? 'result-image-homer' : score >= 5000 ? 'result-image-good' : 'result-image-miss'}`} /></div><p className="result-grade">{grade}</p><h2>{score.toLocaleString()}<small>점</small></h2><div className="result-stats"><div><span>넘긴 공</span><strong>{homeRuns}개</strong></div><div><span>제일 멀리</span><strong>{maxDistance}m</strong></div><div><span>콤보 최고</span><strong>×{maxCombo}</strong></div></div>
       <div className="ranking-card"><div className="ranking-title"><Trophy size={16} /> 오늘 잘 친 우땅이 TOP 3</div>{records.slice(0, 3).map((item, index) => <div className="ranking-row" key={`${item.playedAt}-${index}`}><b>{index + 1}</b><span>{item.nickname}</span><strong>{item.score.toLocaleString()}점</strong></div>)}</div><p className="result-rank">오늘은 <strong>{rank || '-'}등!</strong> · 자정에 다시 시작</p><div className="result-actions"><Button className="start-button result-retry" onClick={() => startGame()}><RotateCcw size={18} /> 또 칠래!</Button><Button className="share-button result-share" onClick={shareScore}>{shareNotice ? <Check size={18} /> : <MessageCircle size={18} fill="currentColor" />}{shareNotice || '친구한테 자랑!'}</Button><Button variant="outline" className="home-button result-home" onClick={returnHome}><HomeIcon size={18} /> 처음으로 갈래</Button></div></div>}
     {screen === 'result' && batReward && <dialog open className="bat-reward-overlay" aria-label={`${batReward === 'gold' ? '황금' : '다이아몬드'}배트 획득`}><div className={`bat-reward-card reward-${batReward}`}><span className="reward-spark reward-spark-one" aria-hidden="true">✦</span><span className="reward-spark reward-spark-two" aria-hidden="true">✦</span><small>오늘의 플레이 보상</small><h2>{batReward === 'gold' ? '황금배트를 얻어따!' : '다이아몬드배트를 얻어따!'}</h2><img src={batReward === 'gold' ? '/utang-bat-gold-v093.png' : '/utang-bat-diamond-v093.png'} alt={batReward === 'gold' ? '황금배트' : '다이아몬드배트'} /><Button type="button" onClick={() => setBatReward(null)}>확인</Button></div></dialog>}
+    {networkNotice && <output className="network-notice" aria-live="polite">{networkNotice}</output>}
   </section></main>;
 }

@@ -27,7 +27,16 @@
       "migrations_dir": "migrations",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "SHARE_CARDS",
+      "bucket_name": "utang-baseball-share-cards",
+    },
+  ],
   "observability": {
     "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1,
+    },
   },
 }
