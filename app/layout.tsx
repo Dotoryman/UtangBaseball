@@ -8,10 +8,11 @@ export const metadata: Metadata = {
   title: '우땅야구',
   description:
     '우땅이와 함께 10개의 공을 치고 최고 점수에 도전하는 1분 야구 게임',
+  manifest: '/manifest.webmanifest?v=20260908',
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/favicon.png?v=20260908',
+    shortcut: '/favicon.png?v=20260908',
+    apple: '/icons/apple-touch-icon.png?v=20260908',
   },
   openGraph: {
     title: '우땅야구',

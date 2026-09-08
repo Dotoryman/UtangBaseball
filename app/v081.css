@@ -67,3 +67,7 @@
 
 /* Preserve the approved miss-pose scale while keeping it inside the batter's box. */
 .batter-result-miss .batter-reaction { transform: translateX(-58px); }
+
+/* The result decoration uses the original clover Utang without a round crop. */
+.result-emote-clover { width: 62px; height: 54px; right: 9px; top: 153px; }
+.result-emote-clover img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
