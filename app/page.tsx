@@ -241,11 +241,11 @@ export default function Home() {
   const resolveSwing = useCallback(async () => {
     if (screen !== 'playing' || countdown || !pitch || batterPhase === 'swing' || contact || pitchLockedRef.current) return;
     const runId = gameRunRef.current; pitchLockedRef.current = true;
-    clearTimers(); setBatterPhase('swing'); setBatterFrame(1); setPitcherPhase('followThrough');
-    // Start the bat motion from the input event itself. The server response is
-    // authoritative for the result, but network latency must not delay feedback.
-    [2, 3, 4, 5, 6, 7].forEach((frame, index) => schedule(() => { if (runId === gameRunRef.current) setBatterFrame(frame); }, 18 + index * 48));
-    schedule(() => { if (runId !== gameRunRef.current) return; setBatterFrame(7); setBatterPhase('followThrough'); }, 320);
+    clearTimers(); setBatterPhase('swing'); setBatterFrame(2); setPitcherPhase('followThrough');
+    // Change pose in the input frame, then reach the contact drawing quickly
+    // enough that the bat feels attached to a mobile pointer-down gesture.
+    [3, 4, 5, 6, 7].forEach((frame, index) => schedule(() => { if (runId === gameRunRef.current) setBatterFrame(frame); }, [22, 48, 78, 114, 158][index]));
+    schedule(() => { if (runId !== gameRunRef.current) return; setBatterFrame(7); setBatterPhase('followThrough'); }, 210);
     const progress = clamp((performance.now() - pitch.startedAt) / pitch.duration, 0, 1.14);
     let nextContact = calculateContact(measureVisualSwingError() ?? Math.abs(progress - CONTACT_PROGRESS));
     let canonical: GameStats | null = null;

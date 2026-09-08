@@ -13,6 +13,9 @@ const SESSION_ID = /^[0-9a-f-]{36}$/i;
 const TOTAL_PITCHES = 10;
 const WINDUP_MS = 760;
 const CONTACT_PROGRESS = 0.86;
+// The request reaches the Worker after the player's pointer-down. Compensate
+// a small, fixed amount without trusting a client-supplied timestamp.
+const SWING_INPUT_TRANSIT_MS = 60;
 const PITCHES: Array<{ type: PitchType; duration: number }> = [
   { type: '직구', duration: 1650 }, { type: '커브', duration: 1900 }, { type: '체인지업', duration: 2150 },
 ];
@@ -80,7 +83,8 @@ export async function POST(request: Request) {
     if (action === 'miss' && now < row.contact_at + row.pitch_duration * (1 - CONTACT_PROGRESS) - 50) {
       return Response.json({ error: '아직 공이 도착하지 않았습니다.' }, { status: 409 });
     }
-    const contact = action === 'miss' ? calculateContact(1) : calculateContact(Math.abs(now - row.contact_at) / row.pitch_duration);
+    const judgedAt = action === 'swing' ? now - SWING_INPUT_TRANSIT_MS : now;
+    const contact = action === 'miss' ? calculateContact(1) : calculateContact(Math.abs(judgedAt - row.contact_at) / row.pitch_duration);
     const keepsCombo = !['WHIFF', 'FOUL'].includes(contact.outcome);
     const combo = keepsCombo ? row.combo + 1 : 0;
     const maxCombo = Math.max(row.max_combo, combo);
