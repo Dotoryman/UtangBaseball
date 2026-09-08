@@ -13,6 +13,8 @@ const SESSION_ID = /^[0-9a-f-]{36}$/i;
 const TOTAL_PITCHES = 10;
 const WINDUP_MS = 760;
 const CONTACT_PROGRESS = 0.86;
+const SWING_INPUT_TRANSIT_MS = 60;
+const MAX_REPORTED_SWING_DRIFT_MS = 250;
 const PITCHES: Array<{ type: PitchType; duration: number }> = [
   { type: '직구', duration: 1650 }, { type: '커브', duration: 1900 }, { type: '체인지업', duration: 2150 },
 ];
@@ -94,7 +96,16 @@ export async function POST(request: Request) {
     if (action === 'miss' && now < contactAt + row.pitch_duration * (1 - CONTACT_PROGRESS) - 50) {
       return Response.json({ error: '아직 공이 도착하지 않았습니다.' }, { status: 409 });
     }
-    const contact = action === 'miss' ? calculateContact(1) : calculateContact(Math.abs(now - contactAt) / row.pitch_duration);
+    let swingError = Math.abs(now - SWING_INPUT_TRANSIT_MS - contactAt) / row.pitch_duration;
+    const reportedElapsed = body.swingElapsedMs;
+    if (action === 'swing' && row.contact_at > 0 && typeof reportedElapsed === 'number' && Number.isFinite(reportedElapsed)) {
+      const releaseAt = contactAt - row.pitch_duration * CONTACT_PROGRESS;
+      const serverElapsed = now - releaseAt;
+      const validElapsed = reportedElapsed >= 0 && reportedElapsed <= row.pitch_duration * 1.25;
+      const plausibleTransit = Math.abs(serverElapsed - reportedElapsed) <= MAX_REPORTED_SWING_DRIFT_MS;
+      if (validElapsed && plausibleTransit) swingError = Math.abs(reportedElapsed - row.pitch_duration * CONTACT_PROGRESS) / row.pitch_duration;
+    }
+    const contact = action === 'miss' ? calculateContact(1) : calculateContact(swingError);
     const keepsCombo = !['WHIFF', 'FOUL'].includes(contact.outcome);
     const combo = keepsCombo ? row.combo + 1 : 0;
     const maxCombo = Math.max(row.max_combo, combo);

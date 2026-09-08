@@ -216,6 +216,7 @@ button { -webkit-tap-highlight-color: transparent; }
   animation: pitch-fast var(--pitch-duration) linear forwards; pointer-events: none;
 }
 .baseball img, .flying-ball img { display: block; width: 100%; height: 100%; object-fit: contain; opacity: 1; mix-blend-mode: normal; }
+.baseball.pitch-paused { animation-play-state: paused; }
 .pitch-curve { animation-name: pitch-curve; animation-timing-function: cubic-bezier(.3, .05, .68, 1); }
 .pitch-change { animation-name: pitch-change; animation-timing-function: cubic-bezier(.22, .18, .45, 1); }
 .flying-ball { position: absolute; z-index: 33; width: 30px; height: 30px; left: 57%; top: 80%; animation: hit-flight .9s cubic-bezier(.1, .45, .25, 1) forwards; }
