@@ -64,3 +64,6 @@
 .umpire-sprite { position: absolute; inset: 0; background: url('/utang-umpire-v091-strip.png') no-repeat; background-size: 300% 100%; pointer-events: none; }
 .umpire { height: 130px; }
 @media (max-width: 380px) { .umpire { height: 108px; } }
+
+/* Preserve the approved miss-pose scale while keeping it inside the batter's box. */
+.batter-result-miss .batter-reaction { transform: translateX(-58px); }

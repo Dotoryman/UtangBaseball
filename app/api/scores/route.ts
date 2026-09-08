@@ -55,48 +55,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const nickname =
-      (typeof body.nickname === 'string' ? body.nickname.trim() : '') ||
-      '우땅이';
-    const score = Number(body.score);
-    const homeRuns = Number(body.homeRuns);
-    const distance = Number(body.distance);
-
-    if (
-      nickname.length > 10 ||
-      !Number.isInteger(score) ||
-      score < 0 ||
-      score > 200_000 ||
-      !Number.isInteger(homeRuns) ||
-      homeRuns < 0 ||
-      homeRuns > 10 ||
-      !Number.isInteger(distance) ||
-      distance < 0 ||
-      distance > 200
-    ) {
-      return Response.json(
-        { error: '잘못된 경기 기록입니다.' },
-        { status: 400 },
-      );
-    }
-
-    await env.DB.prepare(
-      `INSERT INTO scores (nickname, score, home_runs, distance, played_at)
-       VALUES (?, ?, ?, ?, ?)`,
-    )
-      .bind(nickname, score, homeRuns, distance, Date.now())
-      .run();
-
-    return Response.json(
-      { records: await leaderboard('daily') },
-      { status: 201 },
-    );
-  } catch {
-    return Response.json(
-      { error: '기록을 저장하지 못했습니다.' },
-      { status: 503 },
-    );
-  }
+  void request;
+  return Response.json(
+    { error: '점수는 완료된 경기에서만 등록됩니다.' },
+    { status: 405, headers: { Allow: 'GET' } },
+  );
 }

@@ -17,9 +17,11 @@ type Countdown = 3 | 2 | 1 | 'PLAY' | null;
 type Pitch = { id: number; type: PitchType; duration: number; startedAt: number };
 type RecordItem = { nickname: string; score: number; homeRuns: number; distance: number; playedAt: number };
 type Contact = { outcome: Outcome; distance: number; exitVelocity: number; launchAngle: number; points: number };
+type GameStats = { score: number; combo: number; maxCombo: number; homeRuns: number; maxDistance: number };
+type JudgmentResponse = { contact: Contact; stats: GameStats; completed: boolean };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.9.0';
+const APP_VERSION = 'v0.9.1';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
@@ -76,6 +78,16 @@ async function copyText(text: string) {
     document.body.appendChild(field); field.focus(); field.select(); const copied = document.execCommand('copy'); field.remove(); return copied;
   }
 }
+async function postGame<T>(body: Record<string, unknown>): Promise<T> {
+  const response = await fetch('/api/game', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok) throw new Error(`game-${response.status}`);
+  return response.json() as Promise<T>;
+}
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -122,6 +134,9 @@ export default function Home() {
   const [ballFlying, setBallFlying] = useState(false); const [records, setRecords] = useState<RecordItem[]>([]); const [shareNotice, setShareNotice] = useState('');
   const [showHelp, setShowHelp] = useState(false); const [rankingPage, setRankingPage] = useState(0);
   const shareBusy = useRef(false);
+  const shareCardRef = useRef<{ sessionId: string; cardId: string } | null>(null);
+  const sessionRef = useRef<string | null>(null); const sessionReadyRef = useRef<Promise<string | null>>(Promise.resolve(null));
+  const gameRunRef = useRef(0); const pitchLockedRef = useRef(true);
   const timersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]); const statsRef = useRef({ score: 0, homeRuns: 0, maxDistance: 0, maxCombo: 0 });
   const schedule = useCallback((callback: () => void, delay: number) => { const timer = setTimeout(callback, delay); timersRef.current.push(timer); return timer; }, []);
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current = []; }, []);
@@ -160,44 +175,86 @@ export default function Home() {
     ];
     characterAssets.forEach((src) => { const image = new Image(); image.src = src; });
   }, []);
-  useEffect(() => clearTimers, [clearTimers]);
+  useEffect(() => () => { gameRunRef.current += 1; clearTimers(); }, [clearTimers]);
   const finishGame = useCallback((finalScore: number, finalHomeRuns: number, finalDistance: number) => {
     const record: RecordItem = { nickname: nickname.trim() || '우땅이', score: finalScore, homeRuns: finalHomeRuns, distance: finalDistance, playedAt: Date.now() };
     const nextRecords = [...loadRecords(), record].sort((a, b) => b.score - a.score).slice(0, 50);
     try { localStorage.setItem('utang-baseball-records', JSON.stringify(nextRecords)); } catch { /* Results still work when browser storage is unavailable. */ }
     setRecords(nextRecords);
     setPitch(null); setScreen('result'); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
-    fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (Array.isArray(data?.records)) setRecords(data.records); }).catch(() => undefined);
+    fetch('/api/scores?period=daily').then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (Array.isArray(data?.records)) setRecords(data.records); }).catch(() => undefined);
   }, [nickname]);
-  const queuePitch = useCallback((nextNumber: number) => {
+  const queuePitch = useCallback(async (nextNumber: number, runId = gameRunRef.current) => {
+    if (runId !== gameRunRef.current) return;
+    pitchLockedRef.current = true;
     setPitchNumber(nextNumber); setPitch(null); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
-    const config = PITCHES[Math.floor(Math.random() * PITCHES.length)];
-    schedule(() => { setPitcherPhase('windup'); setBatterPhase('ready'); setBatterFrame(1); setCatcherPhase('prepare'); }, 180);
+    let config = PITCHES[Math.floor(Math.random() * PITCHES.length)];
+    const sessionId = await sessionReadyRef.current;
+    if (runId !== gameRunRef.current) return;
+    if (sessionId) {
+      try {
+        const data = await postGame<{ pitch?: { type: PitchType; duration: number } }>({ action: 'pitch', sessionId, pitchNumber: nextNumber });
+        if (data?.pitch && PITCHES.some((item) => item.type === data.pitch?.type && item.duration === data.pitch?.duration)) config = data.pitch;
+        else throw new Error('pitch-session');
+      } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); }
+    }
+    if (runId !== gameRunRef.current) return;
+    schedule(() => { if (runId !== gameRunRef.current) return; setPitcherPhase('windup'); setBatterPhase('ready'); setBatterFrame(1); setCatcherPhase('prepare'); }, 180);
     schedule(() => {
+      if (runId !== gameRunRef.current) return;
       const nextPitch: Pitch = { id: Date.now() + Math.random(), type: config.type, duration: config.duration, startedAt: performance.now() };
-      setPitcherPhase('throw'); setPitch(nextPitch); schedule(() => setPitcherPhase('followThrough'), 300);
-      schedule(() => {
-        setPitch(null); setContact({ outcome: 'WHIFF', distance: 0, exitVelocity: 0, launchAngle: 0, points: 0 }); setCombo(0); setBatterPhase('followThrough'); setCatcherPhase('catch');
-        schedule(() => setCatcherPhase('reaction'), 300);
-        schedule(() => { const current = statsRef.current; if (nextNumber >= TOTAL_PITCHES) finishGame(current.score, current.homeRuns, current.maxDistance); else queuePitch(nextNumber + 1); }, 940);
+      pitchLockedRef.current = false;
+      setPitcherPhase('throw'); setPitch(nextPitch); schedule(() => { if (runId === gameRunRef.current) setPitcherPhase('followThrough'); }, 300);
+      schedule(async () => {
+        if (runId !== gameRunRef.current || pitchLockedRef.current) return;
+        pitchLockedRef.current = true;
+        let miss: Contact = { outcome: 'WHIFF', distance: 0, exitVelocity: 0, launchAngle: 0, points: 0 };
+        let canonical: GameStats | null = null;
+        if (sessionRef.current) {
+          try {
+            const data = await postGame<JudgmentResponse>({ action: 'miss', sessionId: sessionRef.current, pitchNumber: nextNumber });
+            if (data?.contact && data.stats) { miss = data.contact; canonical = data.stats; } else throw new Error('miss-session');
+          } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); }
+        }
+        if (runId !== gameRunRef.current) return;
+        const current = canonical ?? { ...statsRef.current, combo: 0 };
+        statsRef.current = { score: current.score, homeRuns: current.homeRuns, maxDistance: current.maxDistance, maxCombo: current.maxCombo };
+        setScore(current.score); setCombo(0); setMaxCombo(current.maxCombo); setHomeRuns(current.homeRuns); setMaxDistance(current.maxDistance);
+        setPitch(null); setContact(miss); setBatterPhase('followThrough'); setCatcherPhase('catch');
+        schedule(() => { if (runId === gameRunRef.current) setCatcherPhase('reaction'); }, 300);
+        schedule(() => { if (runId !== gameRunRef.current) return; const totals = statsRef.current; if (nextNumber >= TOTAL_PITCHES) finishGame(totals.score, totals.homeRuns, totals.maxDistance); else void queuePitch(nextNumber + 1, runId); }, 940);
       }, nextPitch.duration + 30);
     }, WINDUP_MS);
   }, [finishGame, schedule]);
   const startGame = useCallback((event?: { preventDefault(): void }) => {
     event?.preventDefault(); if (!nickname.trim()) setNickname('우땅이'); clearTimers(); statsRef.current = { score: 0, homeRuns: 0, maxDistance: 0, maxCombo: 0 };
+    const runId = ++gameRunRef.current; pitchLockedRef.current = true;
+    const playerName = nickname.trim() || '우땅이';
+    sessionReadyRef.current = postGame<{ sessionId?: string }>({ action: 'start', nickname: playerName })
+      .then((data) => data.sessionId ?? null)
+      .catch(() => null).then((id) => { if (runId !== gameRunRef.current) return null; sessionRef.current = id; return id; });
     setPitch(null); setContact(null); setBallFlying(false); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     setScore(0); setCombo(0); setMaxCombo(0); setHomeRuns(0); setMaxDistance(0); setShareNotice(''); setPitchNumber(0); setScreen('playing'); setCountdown(3);
-    schedule(() => setCountdown(2), 700); schedule(() => setCountdown(1), 1400); schedule(() => setCountdown('PLAY'), 2100);
-    schedule(() => { setCountdown(null); queuePitch(1); }, 2500);
+    schedule(() => { if (runId === gameRunRef.current) setCountdown(2); }, 700); schedule(() => { if (runId === gameRunRef.current) setCountdown(1); }, 1400); schedule(() => { if (runId === gameRunRef.current) setCountdown('PLAY'); }, 2100);
+    schedule(() => { if (runId !== gameRunRef.current) return; setCountdown(null); void queuePitch(1, runId); }, 2500);
   }, [clearTimers, nickname, queuePitch, schedule]);
-  const resolveSwing = useCallback(() => {
-    if (screen !== 'playing' || countdown || !pitch || batterPhase === 'swing' || contact) return;
+  const resolveSwing = useCallback(async () => {
+    if (screen !== 'playing' || countdown || !pitch || batterPhase === 'swing' || contact || pitchLockedRef.current) return;
+    const runId = gameRunRef.current; pitchLockedRef.current = true;
     clearTimers(); setBatterPhase('swing'); setBatterFrame(1); setPitcherPhase('followThrough');
     const progress = clamp((performance.now() - pitch.startedAt) / pitch.duration, 0, 1.14);
-    const nextContact = calculateContact(measureVisualSwingError() ?? Math.abs(progress - CONTACT_PROGRESS));
-    const keepsCombo = !['WHIFF', 'FOUL'].includes(nextContact.outcome); const nextCombo = keepsCombo ? combo + 1 : 0; const nextMaxCombo = Math.max(maxCombo, nextCombo);
-    const earned = Math.round(nextContact.points * (1 + Math.min(nextCombo, 20) * .1)); const nextScore = score + earned;
-    const nextHomeRuns = homeRuns + (nextContact.outcome === 'HOME_RUN' ? 1 : 0); const nextMaxDistance = Math.max(maxDistance, nextContact.distance);
+    let nextContact = calculateContact(measureVisualSwingError() ?? Math.abs(progress - CONTACT_PROGRESS));
+    let canonical: GameStats | null = null;
+    if (sessionRef.current) {
+      try {
+        const data = await postGame<JudgmentResponse>({ action: 'swing', sessionId: sessionRef.current, pitchNumber });
+        if (data?.contact && data.stats) { nextContact = data.contact; canonical = data.stats; } else throw new Error('swing-session');
+      } catch { sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); }
+    }
+    if (runId !== gameRunRef.current) return;
+    const keepsCombo = !['WHIFF', 'FOUL'].includes(nextContact.outcome); const nextCombo = canonical?.combo ?? (keepsCombo ? combo + 1 : 0); const nextMaxCombo = canonical?.maxCombo ?? Math.max(maxCombo, nextCombo);
+    const earned = Math.round(nextContact.points * (1 + Math.min(nextCombo, 20) * .1)); const nextScore = canonical?.score ?? score + earned;
+    const nextHomeRuns = canonical?.homeRuns ?? homeRuns + (nextContact.outcome === 'HOME_RUN' ? 1 : 0); const nextMaxDistance = canonical?.maxDistance ?? Math.max(maxDistance, nextContact.distance);
     statsRef.current = { score: nextScore, homeRuns: nextHomeRuns, maxDistance: nextMaxDistance, maxCombo: nextMaxCombo };
     const isWhiff = nextContact.outcome === 'WHIFF';
     if (!isWhiff) setPitcherPhase('reaction');
@@ -210,9 +267,9 @@ export default function Home() {
     schedule(() => { setBatterFrame(7); setBatterPhase('followThrough'); }, 420);
     if (isWhiff) schedule(() => { setPitch(null); setCatcherPhase('catch'); }, catchDelay);
     const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 2100 : 1120;
-    schedule(() => { setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else queuePitch(pitchNumber + 1); }, finishDelay);
+    schedule(() => { if (runId !== gameRunRef.current) return; setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else void queuePitch(pitchNumber + 1, runId); }, finishDelay);
   }, [batterPhase, clearTimers, combo, contact, countdown, finishGame, homeRuns, maxCombo, maxDistance, pitch, pitchNumber, queuePitch, schedule, score, screen]);
-  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (screen === 'playing' && event.code === 'Space' && !event.repeat && !(event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], .hud-home'))) { event.preventDefault(); resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing, screen]);
+  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape' && showHelp) { event.preventDefault(); setShowHelp(false); return; } if (screen === 'playing' && ['Space', 'Enter'].includes(event.code) && !event.repeat && !(event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], .hud-home'))) { event.preventDefault(); void resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing, screen, showHelp]);
 
   const rank = useMemo(() => records.findIndex((item) => item.nickname === (nickname.trim() || '우땅이') && item.score === score) + 1, [nickname, records, score]);
   const rankingPageCount = Math.max(1, Math.ceil(records.length / RANKING_PAGE_SIZE));
@@ -224,16 +281,23 @@ export default function Home() {
     if (shareBusy.current) return;
     shareBusy.current = true;
     const name = nickname.trim() || '우땅이';
-    const cardId = crypto.randomUUID();
-    const query = new URLSearchParams({ n: name, s: String(score), h: String(homeRuns), d: String(maxDistance), x: String(maxCombo), c: cardId });
-    const shareUrl = `https://utangbaseball.cloud/share?${query.toString()}`;
     let cardUploaded = false;
+    let shareUrl = 'https://utangbaseball.cloud/';
     setShareNotice('공유 카드 준비 중…');
     try {
       const blob = await createShareCard(name, score, homeRuns, maxDistance, maxCombo);
       if (!blob) throw new Error('share-card');
-      const upload = await fetch(`/api/share-card?id=${encodeURIComponent(cardId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob, signal: AbortSignal.timeout(15000) });
-      if (!upload.ok) throw new Error('share-card-upload');
+      const sessionId = sessionRef.current;
+      if (!sessionId) throw new Error('share-session');
+      let cardId = shareCardRef.current?.sessionId === sessionId ? shareCardRef.current.cardId : '';
+      if (!cardId) {
+        const upload = await fetch(`/api/share-card?session=${encodeURIComponent(sessionId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob, signal: AbortSignal.timeout(15000) });
+        const uploaded = upload.ok ? await upload.json() as { id?: string } : null;
+        if (!uploaded?.id) throw new Error('share-card-upload');
+        cardId = uploaded.id; shareCardRef.current = { sessionId, cardId };
+      }
+      const query = new URLSearchParams({ n: name, s: String(score), h: String(homeRuns), d: String(maxDistance), x: String(maxCombo), c: cardId });
+      shareUrl = `https://utangbaseball.cloud/share?${query.toString()}`;
       cardUploaded = true;
       if (typeof navigator.share === 'function') { setShareNotice('공유 앱 선택 중…'); await navigator.share({ url: shareUrl }); setShareNotice('공유 완료!'); }
       else { const copied = await copyText(shareUrl); setShareNotice(copied ? '링크 복사 완료!' : '복사하지 못했어'); }
@@ -241,7 +305,7 @@ export default function Home() {
     shareBusy.current = false;
     window.setTimeout(() => setShareNotice(''), 2400);
   }, [homeRuns, maxCombo, maxDistance, nickname, score]);
-  const returnHome = useCallback(() => { clearTimers(); setPitch(null); setContact(null); setBallFlying(false); setCountdown(null); setScreen('intro'); }, [clearTimers]);
+  const returnHome = useCallback(() => { gameRunRef.current += 1; pitchLockedRef.current = true; clearTimers(); sessionRef.current = null; sessionReadyRef.current = Promise.resolve(null); shareCardRef.current = null; setPitch(null); setContact(null); setBallFlying(false); setCountdown(null); setScreen('intro'); }, [clearTimers]);
   const showPitcherFollow = pitcherPhase === 'throw' || pitcherPhase === 'followThrough';
   const showCatcherCatch = catcherPhase === 'catch';
   // A missed pitch is not called until it has reached the catcher's mitt.
@@ -253,7 +317,7 @@ export default function Home() {
   return <main className="game-shell"><section className="phone-stage" aria-label="우땅야구 게임 화면">
     {screen === 'intro' && <div className="intro-panel screen-panel">
       <header className="intro-topbar"><button type="button" className="intro-brand brand-home" onClick={returnHome} aria-label="우땅야구 시작 화면"><img src="/utang-sun-logo.png" alt="햇님 우땅이" /><strong>우땅야구</strong></button><button type="button" className="help-button" onClick={() => setShowHelp(true)} aria-label="게임 방법 보기"><HelpCircle size={21} /></button></header>
-      <div className="intro-scene"><span className="intro-halo" aria-hidden="true" /><div className="intro-stickers" aria-hidden="true"><span className="sticker-bubble sticker-wave"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="sticker-bubble sticker-chill"><img src="/utang-sticker-chill-v071.png" alt="" /></span><span className="sticker-bubble sticker-ball"><img src="/utang-countdown-v071.png" alt="" /></span><span className="sticker-bubble sticker-sun"><img src="/utang-sun-logo.png" alt="" /></span></div><div className="hero-sprite" aria-hidden="true" /><span className="hero-spark spark-one">✦</span><span className="hero-spark spark-two">✦</span></div>
+      <div className="intro-scene"><span className="intro-halo" aria-hidden="true" /><div className="intro-stickers" aria-hidden="true"><span className="sticker-bubble sticker-wave"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="sticker-bubble sticker-chill"><img src="/utang-sticker-chill-v071.png" alt="" /></span><span className="sticker-bubble sticker-ball"><img src="/utang-countdown-v071.png" alt="" /></span><span className="sticker-bubble sticker-clover"><img src="/utang-sticker-clover-v091.png" alt="" /></span></div><div className="hero-sprite" aria-hidden="true" /><span className="hero-spark spark-one">✦</span><span className="hero-spark spark-two">✦</span></div>
       <div className="intro-copy"><h1>우땅이랑 같이,<br /><em>한 방 날려볼까?</em></h1><p>10개의 공으로 오늘의 우땅왕에 도전해.</p></div>
       <form className="nickname-form" onSubmit={startGame}><label htmlFor="nickname" className="sr-only">닉네임</label><Input id="nickname" maxLength={10} value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="우땅이" autoComplete="nickname" className="nickname-input" /><Button type="submit" className="start-button"><Play size={17} fill="currentColor" /> PLAY BALL!</Button></form>
       <div className="intro-ranking"><div className="intro-ranking-head"><div className="ranking-title"><Trophy size={17} /> 오늘의 우땅왕</div><span>매일 00:00 · 5명씩</span></div>{records.length > 0 ? visibleRecords.map((item, index) => { const rankNumber = rankingPage * RANKING_PAGE_SIZE + index + 1; return <div className={`ranking-row rank-${rankNumber}`} key={`${item.playedAt}-${rankNumber}`}><b>{rankNumber}</b><span>{item.nickname}</span><strong>{item.score.toLocaleString()}점</strong></div>; }) : <p className="ranking-empty">오늘의 첫 기록을 세워봐!</p>}{rankingPageCount > 1 && <div className="ranking-pagination"><button type="button" onClick={() => setRankingPage((page) => Math.max(0, page - 1))} disabled={rankingPage === 0} aria-label="이전 순위"><ChevronLeft size={16} /></button><span>{rankingPage + 1} / {rankingPageCount}</span><button type="button" onClick={() => setRankingPage((page) => Math.min(rankingPageCount - 1, page + 1))} disabled={rankingPage === rankingPageCount - 1} aria-label="다음 순위"><ChevronRight size={16} /></button></div>}</div>

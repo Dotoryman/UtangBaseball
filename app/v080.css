@@ -15,10 +15,12 @@
 .hero-spark { background: none; padding: 0; width: auto; height: auto; line-height: 1; color: #c8944c; font-size: 17px; animation: none; }
 .spark-one { left: 28%; top: 24px; }
 .spark-two { right: 29%; top: auto; bottom: 34px; font-size: 12px; }
-.sticker-wave { left: 5px; top: 27px; }
+.sticker-wave { left: -2px; top: 19px; }
 .sticker-chill { right: 1px; top: 24px; }
 .sticker-ball { right: 13px; bottom: 15px; }
 .sticker-sun { left: 14px; bottom: 22px; }
+.intro-stickers .sticker-clover { left: 10px; bottom: 18px; width: 70px; height: 62px; animation: sticker-float 3.6s 1s ease-in-out infinite; }
+.intro-stickers .sticker-clover img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
 .intro-copy { margin-top: 14px; }
 .result-panel .badge { margin: 15px auto 8px; padding: 6px 14px; font-size: 11px; letter-spacing: 1px; background: #f0dfc6; color: #8b593a; }
 .result-character { width: 244px; height: 226px; margin: 0 auto; }
