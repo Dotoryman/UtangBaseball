@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, Flame, HelpCircle, Home as HomeIcon, MessageCircle, Play, RotateCcw, Trophy, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { calculateEarnedScore, completeDailyGame, createDailyBatState, normalizeDailyBatState, type BatReward, type BatType, type DailyBatState } from '@/lib/daily-bat';
 
 type Screen = 'intro' | 'playing' | 'result';
 type PitchType = '직구' | '커브' | '체인지업';
@@ -21,8 +22,14 @@ type GameStats = { score: number; combo: number; maxCombo: number; homeRuns: num
 type JudgmentResponse = { contact: Contact; stats: GameStats; completed: boolean };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v0.9.2';
+const APP_VERSION = 'v0.9.3';
 const BATTER_FRAMES = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'] as const;
+const DAILY_BAT_STORAGE_KEY = 'utang-baseball-daily-bat-v1';
+const BAT_SPRITES: Record<BatType, string> = {
+  basic: '/utang-batter-v8-strip.png',
+  gold: '/utang-batter-v8-gold-strip.png',
+  diamond: '/utang-batter-v8-diamond-strip.png',
+};
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
 const CONTACT_PROGRESS = 0.86;
@@ -72,6 +79,21 @@ function loadRecords(): RecordItem[] {
     if (!Array.isArray(records)) return [];
     return records.filter((record) => record && typeof record.nickname === 'string' && Number.isFinite(record.score) && record.playedAt >= koreanMidnight() && record.playedAt <= Date.now()).sort((a, b) => b.score - a.score).slice(0, 50);
   } catch { return []; }
+}
+function loadDailyBatState(now = Date.now()): DailyBatState {
+  if (typeof window === 'undefined') return createDailyBatState(now);
+  try { return normalizeDailyBatState(JSON.parse(localStorage.getItem(DAILY_BAT_STORAGE_KEY) ?? 'null'), now); }
+  catch { return createDailyBatState(now); }
+}
+function saveDailyBatState(state: DailyBatState) {
+  try { localStorage.setItem(DAILY_BAT_STORAGE_KEY, JSON.stringify(state)); }
+  catch { /* The game still works with a basic bat when storage is unavailable. */ }
+}
+function missPoseForBat(bat: BatType) {
+  return bat === 'gold' ? '/utang-pose-miss-v093-gold.png' : bat === 'diamond' ? '/utang-pose-miss-v093-diamond.png' : RESULT_META.WHIFF.pose;
+}
+function followPoseForBat(bat: BatType) {
+  return bat === 'gold' ? '/utang-batter-v8-gold-follow.png' : bat === 'diamond' ? '/utang-batter-v8-diamond-follow.png' : RESULT_META.HOME_RUN.pose;
 }
 async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); return true; } catch {
@@ -134,11 +156,13 @@ export default function Home() {
   const [homeRuns, setHomeRuns] = useState(0); const [maxDistance, setMaxDistance] = useState(0); const [contact, setContact] = useState<Contact | null>(null);
   const [ballFlying, setBallFlying] = useState(false); const [records, setRecords] = useState<RecordItem[]>([]); const [shareNotice, setShareNotice] = useState('');
   const [showHelp, setShowHelp] = useState(false); const [rankingPage, setRankingPage] = useState(0);
+  const [activeBat, setActiveBat] = useState<BatType>('basic'); const [batReward, setBatReward] = useState<BatReward | null>(null);
   const shareBusy = useRef(false);
   const shareCardRef = useRef<{ sessionId: string; cardId: string } | null>(null);
   const sessionRef = useRef<string | null>(null); const sessionReadyRef = useRef<Promise<string | null>>(Promise.resolve(null));
   const releaseReadyRef = useRef<Promise<boolean>>(Promise.resolve(false));
   const gameRunRef = useRef(0); const pitchLockedRef = useRef(true);
+  const completedRunRef = useRef(-1);
   const timersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]); const statsRef = useRef({ score: 0, homeRuns: 0, maxDistance: 0, maxCombo: 0 });
   const schedule = useCallback((callback: () => void, delay: number) => { const timer = setTimeout(callback, delay); timersRef.current.push(timer); return timer; }, []);
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current = []; }, []);
@@ -159,8 +183,27 @@ export default function Home() {
     return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
   }, []);
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      const state = loadDailyBatState();
+      saveDailyBatState(state);
+      clearTimeout(timer);
+      timer = setTimeout(refresh, state.dayStart + 86_400_000 - Date.now() + 100);
+    };
+    refresh();
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, []);
+  useEffect(() => {
     const characterAssets = [
       '/utang-batter-v8-strip.png',
+      '/utang-batter-v8-gold-strip.png',
+      '/utang-batter-v8-diamond-strip.png',
+      '/utang-bat-gold-v093.png',
+      '/utang-bat-diamond-v093.png',
+      '/utang-pose-miss-v093-gold.png',
+      '/utang-pose-miss-v093-diamond.png',
       '/utang-pitcher-v090-strip.png',
       '/utang-umpire-v091-strip.png',
       '/utang-catcher-v6-strip.png',
@@ -179,9 +222,14 @@ export default function Home() {
   }, []);
   useEffect(() => () => { gameRunRef.current += 1; clearTimers(); }, [clearTimers]);
   const finishGame = useCallback((finalScore: number, finalHomeRuns: number, finalDistance: number) => {
+    if (completedRunRef.current === gameRunRef.current) return;
+    completedRunRef.current = gameRunRef.current;
     const record: RecordItem = { nickname: nickname.trim() || '우땅이', score: finalScore, homeRuns: finalHomeRuns, distance: finalDistance, playedAt: Date.now() };
     const nextRecords = [...loadRecords(), record].sort((a, b) => b.score - a.score).slice(0, 50);
     try { localStorage.setItem('utang-baseball-records', JSON.stringify(nextRecords)); } catch { /* Results still work when browser storage is unavailable. */ }
+    const completion = completeDailyGame(loadDailyBatState());
+    saveDailyBatState(completion.state);
+    setBatReward(completion.reward);
     setRecords(nextRecords);
     setPitch(null); setScreen('result'); setPitcherPhase('idle'); setBatterPhase('idle'); setBatterFrame(0); setCatcherPhase('idle');
     fetch('/api/scores?period=daily').then((r) => r.ok ? r.json() as Promise<{ records?: RecordItem[] }> : null).then((data) => { if (Array.isArray(data?.records)) setRecords(data.records); }).catch(() => undefined);
@@ -240,7 +288,8 @@ export default function Home() {
     event?.preventDefault(); if (!nickname.trim()) setNickname('우땅이'); clearTimers(); statsRef.current = { score: 0, homeRuns: 0, maxDistance: 0, maxCombo: 0 };
     const runId = ++gameRunRef.current; pitchLockedRef.current = true;
     const playerName = nickname.trim() || '우땅이';
-    sessionReadyRef.current = postGame<{ sessionId?: string }>({ action: 'start', nickname: playerName })
+    const batState = loadDailyBatState(); saveDailyBatState(batState); setActiveBat(batState.equippedBat); setBatReward(null);
+    sessionReadyRef.current = postGame<{ sessionId?: string }>({ action: 'start', nickname: playerName, batType: batState.equippedBat })
       .then((data) => data.sessionId ?? null)
       .catch(() => null).then((id) => { if (runId !== gameRunRef.current) return null; sessionRef.current = id; return id; });
     releaseReadyRef.current = Promise.resolve(false);
@@ -280,7 +329,7 @@ export default function Home() {
     if (contactFrameDelay > 0) await new Promise((resolve) => window.setTimeout(resolve, contactFrameDelay));
     if (runId !== gameRunRef.current) return;
     const keepsCombo = !['WHIFF', 'FOUL'].includes(nextContact.outcome); const nextCombo = canonical?.combo ?? (keepsCombo ? combo + 1 : 0); const nextMaxCombo = canonical?.maxCombo ?? Math.max(maxCombo, nextCombo);
-    const earned = Math.round(nextContact.points * (1 + Math.min(nextCombo, 20) * .1)); const nextScore = canonical?.score ?? score + earned;
+    const earned = calculateEarnedScore(nextContact.points, nextCombo, activeBat); const nextScore = canonical?.score ?? score + earned;
     const nextHomeRuns = canonical?.homeRuns ?? homeRuns + (nextContact.outcome === 'HOME_RUN' ? 1 : 0); const nextMaxDistance = canonical?.maxDistance ?? Math.max(maxDistance, nextContact.distance);
     statsRef.current = { score: nextScore, homeRuns: nextHomeRuns, maxDistance: nextMaxDistance, maxCombo: nextMaxCombo };
     const isWhiff = nextContact.outcome === 'WHIFF';
@@ -293,7 +342,7 @@ export default function Home() {
     if (isWhiff) schedule(() => { setPitch(null); setCatcherPhase('catch'); }, catchDelay);
     const finishDelay = isWhiff ? catchDelay + 900 : nextContact.outcome === 'HOME_RUN' ? 2100 : 1120;
     schedule(() => { if (runId !== gameRunRef.current) return; setPitch(null); if (pitchNumber >= TOTAL_PITCHES) finishGame(nextScore, nextHomeRuns, nextMaxDistance); else void queuePitch(pitchNumber + 1, runId); }, finishDelay);
-  }, [batterPhase, clearTimers, combo, contact, countdown, finishGame, homeRuns, maxCombo, maxDistance, pitch, pitchNumber, queuePitch, schedule, score, screen]);
+  }, [activeBat, batterPhase, clearTimers, combo, contact, countdown, finishGame, homeRuns, maxCombo, maxDistance, pitch, pitchNumber, queuePitch, schedule, score, screen]);
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape' && showHelp) { event.preventDefault(); setShowHelp(false); return; } if (screen === 'playing' && ['Space', 'Enter'].includes(event.code) && !event.repeat && !(event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], .hud-home'))) { event.preventDefault(); void resolveSwing(); } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [resolveSwing, screen, showHelp]);
 
   const rank = useMemo(() => records.findIndex((item) => item.nickname === (nickname.trim() || '우땅이') && item.score === score) + 1, [nickname, records, score]);
@@ -301,7 +350,7 @@ export default function Home() {
   const visibleRecords = records.slice(rankingPage * RANKING_PAGE_SIZE, (rankingPage + 1) * RANKING_PAGE_SIZE);
   useEffect(() => { setRankingPage((page) => Math.min(page, rankingPageCount - 1)); }, [rankingPageCount]);
   const grade = score >= 50000 ? '전설의 우땅이' : score >= 30000 ? '홈런왕 우땅이' : score >= 15000 ? '주전 우땅이' : score >= 5000 ? '동네 야구 우땅이' : '야구공 구경 온 우땅이';
-  const resultImage = homeRuns > 0 ? '/utang-batter-v8-follow.png' : score >= 5000 ? '/utang-pose-good-authentic.png' : '/utang-pose-miss-v071.png';
+  const resultImage = homeRuns > 0 ? followPoseForBat(activeBat) : score >= 5000 ? '/utang-pose-good-authentic.png' : missPoseForBat(activeBat);
   const shareScore = useCallback(async () => {
     if (shareBusy.current) return;
     shareBusy.current = true;
@@ -360,12 +409,13 @@ export default function Home() {
         {contact?.outcome === 'HOME_RUN' && <span className="batter-impact-bubble" aria-hidden="true">!!</span>}
         {!contact && <div className={`abs-zone ${pitch ? 'live' : ''}`} aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}<b className="contact-core" /></div>}
         {pitch && <div key={pitch.id} className={`baseball pitch-${pitch.type === '직구' ? 'fast' : pitch.type === '커브' ? 'curve' : 'change'}`} style={{ '--pitch-duration': `${pitch.duration}ms` } as React.CSSProperties}><img src="/baseball-official-cutout.png" alt="" /></div>}{ballFlying && <div className={`flying-ball ${contact ? `flying-${contact.outcome.toLowerCase()}` : 'flying-preview'}`}><img src="/baseball-official-cutout.png" alt="" /></div>}
-        <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span><span className="batter-sprite-v6" aria-hidden="true" style={{ backgroundPosition: `${(batterFrame / (BATTER_FRAMES.length - 1)) * 100}% 0` }} />{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
+        <div className={`batter-shadow batter-shadow-${batterPhase}`} /><div className={`batter batter-${batterPhase} ${contact ? `batter-result-${RESULT_META[contact.outcome].tier}` : ''}`}><span className="sr-only">{contact ? `${RESULT_META[contact.outcome].label} 타격을 한 우땅이` : '타격 준비 중인 우땅이'}</span><span className="batter-sprite-v6" aria-hidden="true" style={{ backgroundImage: `url(${BAT_SPRITES[activeBat]})`, backgroundPosition: `${(batterFrame / (BATTER_FRAMES.length - 1)) * 100}% 0` }} />{contact && ['WHIFF', 'FOUL'].includes(contact.outcome) && <img src={contact.outcome === 'WHIFF' ? missPoseForBat(activeBat) : RESULT_META[contact.outcome].pose} alt="" className="batter-reaction" loading="eager" decoding="sync" draggable={false} />}</div>
         {pitch && !contact && <div className="pitch-label">{pitch.type}</div>}{!pitch && !contact && !countdown && <div className="ready-label">투수 준비 중</div>}{contact && <div className={`judgment judgment-${RESULT_META[contact.outcome].tier}`}><strong>{RESULT_META[contact.outcome].label}</strong>{contact.distance > 0 && <span>{contact.distance}m · {contact.exitVelocity}km/h</span>}</div>}
         {!countdown && !contact && <div className="swing-cue"><span className="tap-ring"><i /></span><strong>탭!</strong><small>SPACE</small></div>}{countdown && <div className="countdown-overlay" aria-live="assertive"><div className="countdown-card"><span className="countdown-kicker">UTANG BASEBALL</span><span className="countdown-friend countdown-friend-left" aria-hidden="true"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="countdown-friend countdown-friend-right" aria-hidden="true"><img src="/utang-sticker-chill-v071.png" alt="" /></span><div className="countdown-mascot"><span className="countdown-mascot-glow" aria-hidden="true" /><img src="/utang-countdown-v071.png" alt="야구공을 안고 준비하는 우땅이" /></div><small>우땅이의 야구 도전</small><strong key={countdown}>{countdown}</strong><b>{countdown === 'PLAY' ? 'PLAY BALL!' : '타격 준비'}</b><div className="countdown-dots" aria-hidden="true"><i className="active" /><i className={countdown === 2 || countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /><i className={countdown === 1 || countdown === 'PLAY' ? 'active' : ''} /></div></div></div>}
       </div>
     </button>}{screen === 'playing' && <button type="button" className="hud-home arcade-home" aria-label="처음 화면으로" onClick={returnHome}><HomeIcon size={19} /><span>홈</span></button>}
     {screen === 'result' && <div className="result-panel screen-panel"><header className="result-topbar"><button type="button" className="intro-brand brand-home" onClick={returnHome} aria-label="우땅야구 시작 화면"><img src="/utang-sun-logo.png" alt="햇님 우땅이" /><strong>우땅야구</strong></button></header><div className="result-emotes" aria-hidden="true"><span className="result-emote result-emote-wave"><img src="/utang-sticker-wave-v071.png" alt="" /></span><span className="result-emote result-emote-chill"><img src="/utang-sticker-chill-v071.png" alt="" /></span><span className="result-emote result-emote-ball"><img src="/utang-countdown-v071.png" alt="" /></span><span className="result-emote result-emote-sun result-emote-clover"><img src="/utang-sticker-clover-v091.png" alt="" /></span></div><p className="badge">다 쳤다!</p><div className="result-character"><span className="result-burst" /><img src={resultImage} alt="경기를 마친 우땅이" className={`result-image ${homeRuns > 0 ? 'result-image-homer' : score >= 5000 ? 'result-image-good' : 'result-image-miss'}`} /></div><p className="result-grade">{grade}</p><h2>{score.toLocaleString()}<small>점</small></h2><div className="result-stats"><div><span>넘긴 공</span><strong>{homeRuns}개</strong></div><div><span>제일 멀리</span><strong>{maxDistance}m</strong></div><div><span>콤보 최고</span><strong>×{maxCombo}</strong></div></div>
       <div className="ranking-card"><div className="ranking-title"><Trophy size={16} /> 오늘 잘 친 우땅이 TOP 3</div>{records.slice(0, 3).map((item, index) => <div className="ranking-row" key={`${item.playedAt}-${index}`}><b>{index + 1}</b><span>{item.nickname}</span><strong>{item.score.toLocaleString()}점</strong></div>)}</div><p className="result-rank">오늘은 <strong>{rank || '-'}등!</strong> · 자정에 다시 시작</p><div className="result-actions"><Button className="start-button result-retry" onClick={() => startGame()}><RotateCcw size={18} /> 또 칠래!</Button><Button className="share-button result-share" onClick={shareScore}>{shareNotice ? <Check size={18} /> : <MessageCircle size={18} fill="currentColor" />}{shareNotice || '친구한테 자랑!'}</Button><Button variant="outline" className="home-button result-home" onClick={returnHome}><HomeIcon size={18} /> 처음으로 갈래</Button></div></div>}
+    {screen === 'result' && batReward && <dialog open className="bat-reward-overlay" aria-label={`${batReward === 'gold' ? '황금' : '다이아몬드'}배트 획득`}><div className={`bat-reward-card reward-${batReward}`}><span className="reward-spark reward-spark-one" aria-hidden="true">✦</span><span className="reward-spark reward-spark-two" aria-hidden="true">✦</span><small>오늘의 플레이 보상</small><h2>{batReward === 'gold' ? '황금배트를 얻어따!' : '다이아몬드배트를 얻어따!'}</h2><img src={batReward === 'gold' ? '/utang-bat-gold-v093.png' : '/utang-bat-diamond-v093.png'} alt={batReward === 'gold' ? '황금배트' : '다이아몬드배트'} /><Button type="button" onClick={() => setBatReward(null)}>확인</Button></div></dialog>}
   </section></main>;
 }

@@ -1,12 +1,13 @@
 import { env } from 'cloudflare:workers';
 import { BodyTooLargeError, readLimitedJson } from '@/lib/request-body';
+import { calculateEarnedScore, isBatType, type BatType } from '@/lib/daily-bat';
 
 type PitchType = '직구' | '커브' | '체인지업';
 type Outcome = 'WHIFF' | 'FOUL' | 'INFIELD_HIT' | 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'HOME_RUN';
 type SessionRow = {
   id: string; nickname: string; pitch_number: number; pitch_type: PitchType | null;
   pitch_duration: number | null; contact_at: number | null; score: number; combo: number;
-  max_combo: number; home_runs: number; max_distance: number; completed_at: number | null;
+  max_combo: number; home_runs: number; max_distance: number; completed_at: number | null; bat_type: BatType;
 };
 
 const SESSION_ID = /^[0-9a-f-]{36}$/i;
@@ -47,12 +48,13 @@ export async function POST(request: Request) {
     const action = body.action;
     if (action === 'start') {
       const nickname = (typeof body.nickname === 'string' ? body.nickname.trim() : '') || '우땅이';
+      const batType: BatType = isBatType(body.batType) ? body.batType : 'basic';
       if (nickname.length > 10) return Response.json({ error: '닉네임을 확인해줘.' }, { status: 400 });
       const id = crypto.randomUUID();
       const now = Date.now();
       await env.DB.batch([
         env.DB.prepare('DELETE FROM game_sessions WHERE created_at < ?').bind(now - 2 * 60 * 60 * 1000),
-        env.DB.prepare('INSERT INTO game_sessions (id, nickname, created_at) VALUES (?, ?, ?)').bind(id, nickname, now),
+        env.DB.prepare('INSERT INTO game_sessions (id, nickname, created_at, bat_type) VALUES (?, ?, ?, ?)').bind(id, nickname, now, batType),
       ]);
       return Response.json({ sessionId: id }, { status: 201 });
     }
@@ -109,7 +111,7 @@ export async function POST(request: Request) {
     const keepsCombo = !['WHIFF', 'FOUL'].includes(contact.outcome);
     const combo = keepsCombo ? row.combo + 1 : 0;
     const maxCombo = Math.max(row.max_combo, combo);
-    const earned = Math.round(contact.points * (1 + Math.min(combo, 20) * .1));
+    const earned = calculateEarnedScore(contact.points, combo, row.bat_type);
     const score = row.score + earned;
     const homeRuns = row.home_runs + (contact.outcome === 'HOME_RUN' ? 1 : 0);
     const maxDistance = Math.max(row.max_distance, contact.distance);

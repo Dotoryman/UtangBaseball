@@ -506,12 +506,34 @@ button { -webkit-tap-highlight-color: transparent; }
 .batter-result-miss .batter-reaction { width: 174px; height: 174px; inset: 32px auto auto 29px; }
 .batter-result-foul .batter-reaction { width: 198px; height: 184px; inset: 27px auto auto 15px; }
 .pitch-label, .ready-label { top: 82px; }
-.swing-cue { position: absolute; z-index: 45; top: 114px; right: 10px; bottom: auto; height: 29px; display: flex; align-items: center; gap: 4px; padding: 3px 7px 3px 4px; color: white; background: rgb(5 29 67 / 74%); border: 1px solid rgb(255 255 255 / 25%); border-radius: 999px; box-shadow: 0 3px 9px rgb(0 22 53 / 20%); backdrop-filter: blur(5px); pointer-events: none; }
+.swing-cue { position: absolute; z-index: 45; right: 5px; bottom: 4px; height: 29px; display: flex; align-items: center; gap: 4px; padding: 3px 7px 3px 4px; color: white; background: rgb(5 29 67 / 74%); border: 1px solid rgb(255 255 255 / 25%); border-radius: 999px; box-shadow: 0 3px 9px rgb(0 22 53 / 20%); backdrop-filter: blur(5px); pointer-events: none; }
 .swing-cue .tap-ring { width: 21px; height: 21px; border: 2px solid #ffe05e; }
 .swing-cue .tap-ring i { width: 7px; height: 7px; background: #ffe05e; }
 .swing-cue strong { font-size: 10px; }
 .swing-cue small { padding: 2px 4px; color: #bfd6f4; background: rgb(255 255 255 / 9%); border-radius: 4px; font-size: 6px; }
-@media (max-width: 380px) { .swing-cue { top: 109px; right: 7px; } .swing-cue small { display: none; } }
+@media (max-width: 380px) { .swing-cue { right: 4px; bottom: 3px; } .swing-cue small { display: none; } }
+
+.bat-reward-overlay { position: fixed; inset: 0; z-index: 300; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 18px; border: 0; background: rgb(42 25 16 / 68%); display: grid; place-items: center; backdrop-filter: blur(5px); }
+.bat-reward-card { position: relative; width: min(430px, calc(100vw - 36px)); padding: 25px 22px 22px; overflow: hidden; text-align: center; color: #55311e; background: #fff8e9; border: 3px solid #5b351f; border-radius: 28px 25px 30px 24px; box-shadow: 0 13px 0 rgb(76 39 22 / 30%), 0 24px 48px rgb(28 14 7 / 30%); transform: rotate(-.35deg); }
+.bat-reward-card::before { content: ''; position: absolute; inset: 7px; border: 2px dashed rgb(128 76 35 / 22%); border-radius: 21px 18px 23px 18px; pointer-events: none; }
+.bat-reward-card > * { position: relative; z-index: 1; }
+.bat-reward-card small { display: inline-block; padding: 5px 11px; color: #fff9e8; background: #9e5a2e; border-radius: 999px; font-size: 11px; font-weight: 900; letter-spacing: .05em; }
+.bat-reward-card h2 { margin: 13px 0 2px; font-size: clamp(24px, 6vw, 32px); line-height: 1.15; font-weight: 950; letter-spacing: -.06em; }
+.bat-reward-card img { display: block; width: min(100%, 360px); height: 150px; margin: 2px auto 7px; object-fit: contain; filter: drop-shadow(0 8px 7px rgb(91 49 18 / 22%)); }
+.bat-reward-card button { width: min(260px, 90%); height: 50px; color: #fffaf0; background: #a85e35; border: 2px solid #754024; border-radius: 16px 14px 17px 13px; box-shadow: 0 5px 0 #754024; font-size: 17px; font-weight: 950; }
+.bat-reward-card button:active { transform: translateY(3px); box-shadow: 0 2px 0 #754024; }
+.bat-reward-card.reward-gold { background: linear-gradient(155deg, #fffbed 0%, #ffefb2 52%, #f5d579 100%); }
+.bat-reward-card.reward-gold h2 { color: #874700; text-shadow: 0 2px #fff5b7; }
+.bat-reward-card.reward-gold button { background: #d58a13; border-color: #995609; box-shadow: 0 5px 0 #995609; }
+.bat-reward-card.reward-diamond { background: linear-gradient(155deg, #fbffff 0%, #dff5ff 55%, #b8e0f4 100%); }
+.bat-reward-card.reward-diamond h2 { color: #17658d; text-shadow: 0 2px #fff; }
+.bat-reward-card.reward-diamond button { background: #318db9; border-color: #17658d; box-shadow: 0 5px 0 #17658d; }
+.reward-spark { position: absolute; color: #e6a719; font-size: 30px; animation: rewardTwinkle 1.2s ease-in-out infinite alternate; }
+.reward-spark-one { top: 72px; left: 25px; }
+.reward-spark-two { top: 103px; right: 26px; animation-delay: -.55s; }
+.reward-diamond .reward-spark { color: #3ca9dc; }
+@keyframes rewardTwinkle { from { opacity: .45; transform: scale(.75) rotate(-10deg); } to { opacity: 1; transform: scale(1.15) rotate(10deg); } }
+@media (max-height: 600px) { .bat-reward-card { padding-top: 18px; } .bat-reward-card img { height: 110px; } .bat-reward-card h2 { margin-top: 9px; } }
 .result-panel { height: 100%; padding-top: 0; }
 .result-topbar { padding-inline: 0; }
 
