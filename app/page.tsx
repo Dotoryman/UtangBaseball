@@ -89,7 +89,7 @@ type StartResponse = {
 };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v1.1.2';
+const APP_VERSION = 'v1.1.3';
 const BATTER_FRAMES = [
   'ready',
   'load',
@@ -103,9 +103,32 @@ const BATTER_FRAMES = [
 const DAILY_BAT_STORAGE_KEY = 'utang-baseball-daily-bat-v1';
 const BAT_SPRITES: Record<BatType, string> = {
   basic: '/utang-batter-v8-strip.png',
+  aluminum: '/utang-batter-v8-aluminum-strip.png',
   gold: '/utang-batter-v8-gold-strip.png',
+  ruby: '/utang-batter-v8-ruby-strip.png',
   diamond: '/utang-batter-v8-diamond-strip.png',
 };
+const BAT_LABELS: Record<BatType, string> = {
+  basic: '기본',
+  aluminum: '알루미늄',
+  gold: '황금',
+  ruby: '루비',
+  diamond: '다이아몬드',
+};
+const BAT_ICONS: Record<BatType, string> = {
+  basic: '/utang-bat-gold-v093.png',
+  aluminum: '/utang-bat-aluminum-v113.png',
+  gold: '/utang-bat-gold-v093.png',
+  ruby: '/utang-bat-ruby-v113.png',
+  diamond: '/utang-bat-diamond-v093.png',
+};
+const BAT_COLLECTION: Array<{ type: BatType; games: number }> = [
+  { type: 'basic', games: 0 },
+  { type: 'aluminum', games: 1 },
+  { type: 'gold', games: 2 },
+  { type: 'ruby', games: 3 },
+  { type: 'diamond', games: 4 },
+];
 const RANKING_PAGE_SIZE = 5;
 const WINDUP_MS = 760;
 const CONTACT_PROGRESS = 0.86;
@@ -262,18 +285,10 @@ function saveDailyBatState(state: DailyBatState) {
   }
 }
 function missPoseForBat(bat: BatType) {
-  return bat === 'gold'
-    ? '/utang-pose-miss-v093-gold.png'
-    : bat === 'diamond'
-      ? '/utang-pose-miss-v093-diamond.png'
-      : RESULT_META.WHIFF.pose;
+  return bat === 'basic' ? RESULT_META.WHIFF.pose : `/utang-pose-miss-v093-${bat}.png`;
 }
 function followPoseForBat(bat: BatType) {
-  return bat === 'gold'
-    ? '/utang-batter-v8-gold-follow.png'
-    : bat === 'diamond'
-      ? '/utang-batter-v8-diamond-follow.png'
-      : RESULT_META.HOME_RUN.pose;
+  return bat === 'basic' ? RESULT_META.HOME_RUN.pose : `/utang-batter-v8-${bat}-follow.png`;
 }
 function triggerHitHaptic(outcome: Outcome) {
   if (
@@ -534,11 +549,17 @@ export default function Home() {
   useEffect(() => {
     const characterAssets = [
       '/utang-batter-v8-strip.png',
+      '/utang-batter-v8-aluminum-strip.png',
       '/utang-batter-v8-gold-strip.png',
+      '/utang-batter-v8-ruby-strip.png',
       '/utang-batter-v8-diamond-strip.png',
+      '/utang-bat-aluminum-v113.png',
       '/utang-bat-gold-v093.png',
+      '/utang-bat-ruby-v113.png',
       '/utang-bat-diamond-v093.png',
+      '/utang-pose-miss-v093-aluminum.png',
       '/utang-pose-miss-v093-gold.png',
+      '/utang-pose-miss-v093-ruby.png',
       '/utang-pose-miss-v093-diamond.png',
       '/utang-pitcher-v090-strip.png',
       '/utang-umpire-v091-strip.png',
@@ -1273,37 +1294,22 @@ export default function Home() {
             <section className="bat-collection" aria-label="오늘 모은 배트">
               <div className="bat-collection-head">
                 <strong>오늘 모은 배트</strong>
-                <span>{Math.min(3, dailyBatState.completedGames + 1)} / 3</span>
+                <span>{Math.min(5, dailyBatState.completedGames + 1)} / 5</span>
               </div>
               <div className="bat-collection-list">
-                <div className="bat-slot is-owned">
-                  <img
-                    className="bat-thumb bat-thumb-basic"
-                    src="/utang-bat-gold-v093.png"
-                    alt=""
-                  />
-                  <span>기본</span>
-                </div>
-                <div
-                  className={`bat-slot ${dailyBatState.completedGames >= 1 ? 'is-owned' : 'is-locked'}`}
-                >
-                  <img
-                    className="bat-thumb"
-                    src="/utang-bat-gold-v093.png"
-                    alt=""
-                  />
-                  <span>황금</span>
-                </div>
-                <div
-                  className={`bat-slot ${dailyBatState.completedGames >= 2 ? 'is-owned' : 'is-locked'}`}
-                >
-                  <img
-                    className="bat-thumb"
-                    src="/utang-bat-diamond-v093.png"
-                    alt=""
-                  />
-                  <span>다이아</span>
-                </div>
+                {BAT_COLLECTION.map(({ type, games }) => (
+                  <div
+                    className={`bat-slot ${dailyBatState.completedGames >= games ? 'is-owned' : 'is-locked'}`}
+                    key={type}
+                  >
+                    <img
+                      className={`bat-thumb ${type === 'basic' ? 'bat-thumb-basic' : ''}`}
+                      src={BAT_ICONS[type]}
+                      alt=""
+                    />
+                    <span>{BAT_LABELS[type]}</span>
+                  </div>
+                ))}
               </div>
             </section>
             <div className="intro-ranking">
@@ -1543,6 +1549,24 @@ export default function Home() {
                 />
               </div>
               {umpire}
+              {contact && contact.outcome !== 'WHIFF' && (
+                <span
+                  className={`comic-contact-effect comic-${RESULT_META[contact.outcome].tier}`}
+                  aria-hidden="true"
+                >
+                  <b>
+                    {contact.outcome === 'HOME_RUN'
+                      ? '쾅!'
+                      : contact.outcome === 'FOUL'
+                        ? '탁!'
+                        : '딱!'}
+                  </b>
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              )}
               {contact?.outcome === 'HOME_RUN' && (
                 <span className="batter-impact-bubble" aria-hidden="true">
                   !!
@@ -1763,7 +1787,7 @@ export default function Home() {
                 <Trophy size={16} /> 오늘 잘 친 우땅이 TOP 3
               </div>
               {records.slice(0, 3).map((item, index) => (
-                <div className="ranking-row" key={`${item.playedAt}-${index}`}>
+                <div className={`ranking-row rank-${index + 1}`} key={`${item.playedAt}-${index}`}>
                   <b>{index + 1}</b>
                   <span>{item.nickname}</span>
                   <strong>{item.score.toLocaleString()}점</strong>
@@ -1805,7 +1829,7 @@ export default function Home() {
           <dialog
             open
             className="bat-reward-overlay"
-            aria-label={`${batReward === 'gold' ? '황금' : '다이아몬드'}배트 획득`}
+            aria-label={`${BAT_LABELS[batReward]}배트 획득`}
           >
             <div className={`bat-reward-card reward-${batReward}`}>
               <span
@@ -1821,18 +1845,10 @@ export default function Home() {
                 ✦
               </span>
               <small>오늘의 플레이 보상</small>
-              <h2>
-                {batReward === 'gold'
-                  ? '황금배트를 얻어따!'
-                  : '다이아몬드배트를 얻어따!'}
-              </h2>
+              <h2>{BAT_LABELS[batReward]}배트를 얻어따!</h2>
               <img
-                src={
-                  batReward === 'gold'
-                    ? '/utang-bat-gold-v093.png'
-                    : '/utang-bat-diamond-v093.png'
-                }
-                alt={batReward === 'gold' ? '황금배트' : '다이아몬드배트'}
+                src={BAT_ICONS[batReward]}
+                alt={`${BAT_LABELS[batReward]}배트`}
               />
               <Button type="button" onClick={() => setBatReward(null)}>
                 확인

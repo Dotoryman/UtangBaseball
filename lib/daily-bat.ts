@@ -1,4 +1,4 @@
-export type BatType = 'basic' | 'gold' | 'diamond';
+export type BatType = 'basic' | 'aluminum' | 'gold' | 'ruby' | 'diamond';
 export type BatReward = Exclude<BatType, 'basic'>;
 
 export type DailyBatState = {
@@ -9,7 +9,9 @@ export type DailyBatState = {
 
 const BAT_SCORE_MULTIPLIERS: Record<BatType, number> = {
   basic: 1,
+  aluminum: 1.05,
   gold: 1.1,
+  ruby: 1.15,
   diamond: 1.2,
 };
 
@@ -18,8 +20,10 @@ export function koreanDayStart(now = Date.now()) {
 }
 
 export function batForCompletedGames(completedGames: number): BatType {
-  if (completedGames >= 2) return 'diamond';
-  if (completedGames >= 1) return 'gold';
+  if (completedGames >= 4) return 'diamond';
+  if (completedGames >= 3) return 'ruby';
+  if (completedGames >= 2) return 'gold';
+  if (completedGames >= 1) return 'aluminum';
   return 'basic';
 }
 
@@ -38,12 +42,17 @@ export function normalizeDailyBatState(value: unknown, now = Date.now()): DailyB
 export function completeDailyGame(value: unknown, now = Date.now()): { state: DailyBatState; reward: BatReward | null } {
   const current = normalizeDailyBatState(value, now);
   const completedGames = current.completedGames + 1;
-  const reward: BatReward | null = completedGames === 1 ? 'gold' : completedGames === 2 ? 'diamond' : null;
+  const reward: BatReward | null =
+    completedGames === 1 ? 'aluminum'
+      : completedGames === 2 ? 'gold'
+        : completedGames === 3 ? 'ruby'
+          : completedGames === 4 ? 'diamond'
+            : null;
   return { state: { dayStart: current.dayStart, completedGames, equippedBat: batForCompletedGames(completedGames) }, reward };
 }
 
 export function isBatType(value: unknown): value is BatType {
-  return value === 'basic' || value === 'gold' || value === 'diamond';
+  return value === 'basic' || value === 'aluminum' || value === 'gold' || value === 'ruby' || value === 'diamond';
 }
 
 export function calculateEarnedScore(points: number, combo: number, bat: BatType) {

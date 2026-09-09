@@ -1,7 +1,9 @@
 import sharp from 'sharp';
 
 const variants = {
+  aluminum: { dark: [92, 105, 119], mid: [174, 190, 205], light: [244, 250, 255], gloss: true, glossLight: [255, 255, 255] },
   gold: { dark: [177, 92, 5], mid: [239, 165, 18], light: [255, 245, 165], gloss: true },
+  ruby: { dark: [122, 9, 33], mid: [212, 30, 62], light: [255, 177, 187], gloss: true, glossLight: [255, 225, 231] },
   diamond: { dark: [68, 151, 207], light: [211, 244, 255] },
 };
 const frames = ['ready', 'load', 'stride', 'start', 'mid', 'contact', 'extension', 'follow'];
@@ -106,9 +108,10 @@ async function recolorBat(source, output, box, palette) {
       const stripe = uNorm > .12 && uNorm < .83 && vNorm > .64 && vNorm < .79;
       if (stripe) {
         const strength = .48 * Math.sin(((vNorm - .64) / .15) * Math.PI);
-        data[offset] = interpolate(data[offset], 255, strength);
-        data[offset + 1] = interpolate(data[offset + 1], 247, strength);
-        data[offset + 2] = interpolate(data[offset + 2], 185, strength);
+        const gloss = palette.glossLight ?? [255, 247, 185];
+        data[offset] = interpolate(data[offset], gloss[0], strength);
+        data[offset + 1] = interpolate(data[offset + 1], gloss[1], strength);
+        data[offset + 2] = interpolate(data[offset + 2], gloss[2], strength);
       }
     } else {
       data[offset] = interpolate(palette.dark[0], palette.light[0], lightness);
@@ -119,6 +122,23 @@ async function recolorBat(source, output, box, palette) {
   const result = await sharp(data, { raw: info }).png({ compressionLevel: 9 }).toBuffer();
   if (output) await sharp(result).toFile(output);
   return result;
+}
+
+async function recolorGoldIcon(output, palette) {
+  const { data, info } = await sharp('public/utang-bat-gold-v093.png')
+    .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let offset = 0; offset < data.length; offset += 4) {
+    const [r, g, b, a] = data.subarray(offset, offset + 4);
+    if (a < 32 || r < 110 || g < 52 || g < b * 1.12 || r < g * .9) continue;
+    const lightness = Math.max(0, Math.min(1, (r + g + b - 250) / 500));
+    const pivot = lightness < .58 ? palette.dark : palette.mid;
+    const target = lightness < .58 ? palette.mid : palette.light;
+    const amount = lightness < .58 ? lightness / .58 : (lightness - .58) / .42;
+    data[offset] = interpolate(pivot[0], target[0], amount);
+    data[offset + 1] = interpolate(pivot[1], target[1], amount);
+    data[offset + 2] = interpolate(pivot[2], target[2], amount);
+  }
+  await sharp(data, { raw: info }).png({ compressionLevel: 9 }).toFile(output);
 }
 
 async function removeGeneratedBackdrop(source, output) {
@@ -162,6 +182,11 @@ const decoratedGold = await sharp('public/utang-bat-gold-v093.png')
   .toBuffer();
 await sharp(decoratedGold).toFile('public/utang-bat-gold-v093.png');
 
+await Promise.all([
+  recolorGoldIcon('public/utang-bat-aluminum-v113.png', variants.aluminum),
+  recolorGoldIcon('public/utang-bat-ruby-v113.png', variants.ruby),
+]);
+
 for (const [variant, palette] of Object.entries(variants)) {
   const frameBuffers = [];
   for (const frame of frames) {
@@ -178,4 +203,4 @@ for (const [variant, palette] of Object.entries(variants)) {
     .composite(layers).png({ compressionLevel: 9 }).toFile(`public/utang-batter-v8-${variant}-strip.png`);
 }
 
-console.log('Built v0.9.3 bat assets.');
+console.log('Built five daily bat variants.');

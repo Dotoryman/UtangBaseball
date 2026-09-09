@@ -17,13 +17,13 @@ test('invalid client cookie cannot select or advance an equipped bat', () => {
   assert.notEqual(invalid.playerId, 'diamond');
   assert.equal(batProgress(0).equippedBat, 'basic');
   assert.deepEqual(
-    [batProgress(1).equippedBat, batProgress(2).equippedBat, batProgress(7).equippedBat],
-    ['gold', 'diamond', 'diamond'],
+    [batProgress(1).equippedBat, batProgress(2).equippedBat, batProgress(3).equippedBat, batProgress(4).equippedBat, batProgress(7).equippedBat],
+    ['aluminum', 'gold', 'ruby', 'diamond', 'diamond'],
   );
 });
 
 test('server reward progress exposes no score multiplier', () => {
-  const progress = batProgress(2);
+  const progress = batProgress(4);
   assert.equal(progress.reward, 'diamond');
   assert.equal('multiplier' in progress, false);
   assert.equal('scoreBonus' in progress, false);

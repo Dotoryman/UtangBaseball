@@ -38,6 +38,11 @@ export function batProgress(completedGames: number, now = Date.now()): ServerBat
     dayStart: koreanDayStart(now),
     completedGames: count,
     equippedBat: batForCompletedGames(count),
-    reward: count === 1 ? 'gold' : count === 2 ? 'diamond' : null,
+    reward:
+      count === 1 ? 'aluminum'
+        : count === 2 ? 'gold'
+          : count === 3 ? 'ruby'
+            : count === 4 ? 'diamond'
+              : null,
   };
 }
