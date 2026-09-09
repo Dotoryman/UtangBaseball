@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { calculateEarnedScore, completeDailyGame, createDailyBatState, normalizeDailyBatState } from '../lib/daily-bat.ts';
 
 const firstDay = Date.UTC(2026, 8, 8, 3);
 const nextDay = Date.UTC(2026, 8, 9, 3);
+const batMigration = await readFile(
+  new URL('../migrations/0013_expand_bat_types.sql', import.meta.url),
+  'utf8',
+);
 
 test('daily completion rewards all five bats exactly once', () => {
   const initial = createDailyBatState(firstDay);
@@ -34,4 +39,9 @@ test('bat score is rounded once after combo and active bat are applied', () => {
   assert.equal(calculateEarnedScore(1000, 0, 'ruby'), 1150);
   assert.equal(calculateEarnedScore(1000, 0, 'diamond'), 1200);
   assert.equal(calculateEarnedScore(1000, 3, 'gold'), 1430);
+});
+
+test('D1 sessions accept all five server-selected bats', () => {
+  assert.match(batMigration, /'basic', 'aluminum', 'gold', 'ruby', 'diamond'/);
+  assert.match(batMigration, /bat_type = 'aluminum'/);
 });
