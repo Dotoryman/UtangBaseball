@@ -32,10 +32,19 @@ test('alias selection skips names already assigned to other players', () => {
   assert.notEqual(pickUtangNickname([first], () => 0), first);
 });
 
+test('alias selection keeps producing distinct Utang names after the curated list', () => {
+  const excluded = new Set(UTANG_NICKNAME_ALIASES);
+  const fallback = pickUtangNickname(excluded, () => 0);
+  assert.match(fallback, /^\d+번타자 우땅이$/);
+  assert.ok(fallback.length <= 10);
+});
+
 test('public rankings switch display names without overwriting score nicknames', () => {
   assert.match(publicRankings, /LEFT JOIN nickname_aliases/);
   assert.match(publicRankings, /CASE WHEN a\.enabled = 1 THEN a\.replacement_nickname/);
   assert.match(adminRankings, /export async function PATCH/);
+  assert.match(adminRankings, /body\.all === true/);
+  assert.match(adminRankings, /MASK_ALL_NICKNAMES/);
   assert.match(adminRankings, /ON CONFLICT\(original_nickname\) DO UPDATE SET/);
   assert.doesNotMatch(adminRankings, /UPDATE scores SET nickname/);
   assert.match(migration, /original_nickname TEXT PRIMARY KEY/);

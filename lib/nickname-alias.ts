@@ -50,6 +50,13 @@ export function pickUtangNickname(
     (nickname) => !excludedSet.has(nickname),
   );
   const choices = available.length ? available : UTANG_NICKNAME_ALIASES;
+  if (!available.length) {
+    for (let number = 1; number <= 999; number += 1) {
+      const fallback = `${number}번타자 우땅이`;
+      if (!excludedSet.has(fallback)) return fallback;
+    }
+    throw new Error('사용할 수 있는 우땅이 표시 이름이 없어.');
+  }
   const index = Math.min(
     choices.length - 1,
     Math.floor(Math.max(0, random()) * choices.length),

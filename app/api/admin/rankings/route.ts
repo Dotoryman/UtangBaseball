@@ -52,14 +52,25 @@ export async function GET(request: Request) {
        LEFT JOIN nickname_aliases a ON a.original_nickname = s.nickname
        WHERE ${where}`,
     ).bind(...bindings);
-    const [rows, total] = await env.DB.batch<Record<string, number | string>>([
-      list,
-      count,
-    ]);
+    const summary = env.DB.prepare(`SELECT
+      COUNT(DISTINCT s.nickname) totalNicknames,
+      COUNT(DISTINCT CASE WHEN a.enabled = 1 THEN s.nickname END) maskedNicknames
+      FROM scores s
+      LEFT JOIN nickname_aliases a ON a.original_nickname = s.nickname
+      WHERE s.played_at > COALESCE((
+        SELECT state_value FROM admin_state WHERE state_key = 'ranking_cleared_at'
+      ), 0)`);
+    const [rows, total, masks] = await env.DB.batch<
+      Record<string, number | string>
+    >([list, count, summary]);
     return Response.json({
       records: rows.results ?? [],
       total: Number(total.results?.[0]?.total ?? 0),
       page,
+      maskSummary: {
+        totalNicknames: Number(masks.results?.[0]?.totalNicknames ?? 0),
+        maskedNicknames: Number(masks.results?.[0]?.maskedNicknames ?? 0),
+      },
     });
   } catch {
     return Response.json({ error: '랭킹을 불러오지 못했어.' }, { status: 503 });
@@ -71,6 +82,68 @@ export async function PATCH(request: Request) {
   if (denied) return denied;
   try {
     const body = await readLimitedJson(request);
+    if (body.all === true) {
+      if (typeof body.enabled !== 'boolean')
+        return Response.json({ error: '전체 적용값을 확인해줘.' }, { status: 400 });
+      const enabled = body.enabled;
+      const now = Date.now();
+      if (!enabled) {
+        const [updated] = await env.DB.batch([
+          env.DB.prepare('UPDATE nickname_aliases SET enabled = 0, updated_at = ? WHERE enabled = 1').bind(now),
+          env.DB.prepare(
+            'INSERT INTO admin_audit_logs(action, target_type, details, created_at) VALUES (?, ?, ?, ?)',
+          ).bind('RESTORE_ALL_NICKNAMES', 'nickname', '전체 원래 닉네임으로 복원', now),
+        ]);
+        return Response.json({ ok: true, enabled: false, updated: updated.meta.changes });
+      }
+
+      const [scoreNames, aliases] = await env.DB.batch<
+        Record<string, string | number>
+      >([
+        env.DB.prepare(`SELECT DISTINCT s.nickname
+          FROM scores s
+          WHERE s.played_at > COALESCE((
+            SELECT state_value FROM admin_state WHERE state_key = 'ranking_cleared_at'
+          ), 0)
+          ORDER BY s.nickname`),
+        env.DB.prepare(`SELECT original_nickname originalNickname,
+          replacement_nickname replacementNickname FROM nickname_aliases`),
+      ]);
+      const existing = new Map(
+        (aliases.results ?? []).map((row) => [
+          String(row.originalNickname),
+          String(row.replacementNickname),
+        ]),
+      );
+      const used = new Set(existing.values());
+      const statements = (scoreNames.results ?? []).map((row) => {
+        const originalNickname = String(row.nickname);
+        const replacementNickname =
+          existing.get(originalNickname) ?? pickUtangNickname(used);
+        used.add(replacementNickname);
+        return env.DB.prepare(`INSERT INTO nickname_aliases(
+          original_nickname, replacement_nickname, enabled, updated_at
+        ) VALUES (?, ?, 1, ?)
+        ON CONFLICT(original_nickname) DO UPDATE SET
+          enabled = 1,
+          updated_at = excluded.updated_at`).bind(
+          originalNickname,
+          replacementNickname,
+          now,
+        );
+      });
+      for (let index = 0; index < statements.length; index += 400)
+        await env.DB.batch(statements.slice(index, index + 400));
+      await env.DB.prepare(
+        'INSERT INTO admin_audit_logs(action, target_type, details, created_at) VALUES (?, ?, ?, ?)',
+      ).bind(
+        'MASK_ALL_NICKNAMES',
+        'nickname',
+        `전체 ${statements.length}개 닉네임 표시 이름 적용`,
+        now,
+      ).run();
+      return Response.json({ ok: true, enabled: true, updated: statements.length });
+    }
     const nickname =
       typeof body.nickname === 'string' ? body.nickname.trim().slice(0, 10) : '';
     const enabled = body.enabled === true;

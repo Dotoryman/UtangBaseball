@@ -48,6 +48,7 @@ type Ranking = {
   playedAt: number;
   reportCount: number;
 };
+type MaskSummary = { totalNicknames: number; maskedNicknames: number };
 type BannedWord = { id: number; term: string; createdAt: number };
 type AuditData = {
   logs: Array<{
@@ -80,6 +81,8 @@ const ACTION_LABELS: Record<string, string> = {
   CLEAR_RANKINGS: '랭킹 전체 비우기',
   MASK_NICKNAME: '닉네임 표시 이름 적용',
   RESTORE_NICKNAME: '원래 닉네임 복원',
+  MASK_ALL_NICKNAMES: '전체 닉네임 표시 이름 적용',
+  RESTORE_ALL_NICKNAMES: '전체 원래 닉네임 복원',
 };
 
 function number(value: unknown) {
@@ -173,6 +176,10 @@ export default function AdminPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [rankingTotal, setRankingTotal] = useState(0);
+  const [maskSummary, setMaskSummary] = useState<MaskSummary>({
+    totalNicknames: 0,
+    maskedNicknames: 0,
+  });
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('score');
   const [page, setPage] = useState(1);
@@ -184,6 +191,7 @@ export default function AdminPage() {
   const [resetText, setResetText] = useState('');
   const [loading, setLoading] = useState(false);
   const [maskingNickname, setMaskingNickname] = useState('');
+  const [bulkMasking, setBulkMasking] = useState(false);
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ period });
@@ -219,11 +227,16 @@ export default function AdminPage() {
     params.set('sort', sort);
     params.set('page', String(page));
     try {
-      const result = await api<{ records: Ranking[]; total: number }>(
+      const result = await api<{
+        records: Ranking[];
+        total: number;
+        maskSummary: MaskSummary;
+      }>(
         `/api/admin/rankings?${params}`,
       );
       setRankings(result.records);
       setRankingTotal(result.total);
+      setMaskSummary(result.maskSummary);
     } catch (error) {
       setNotice(
         error instanceof Error ? error.message : '랭킹을 불러오지 못했어.',
@@ -347,6 +360,14 @@ export default function AdminPage() {
             : item,
         ),
       );
+      if ((row.nicknameMasked === 1) !== enabled)
+        setMaskSummary((current) => ({
+          ...current,
+          maskedNicknames: Math.max(
+            0,
+            current.maskedNicknames + (enabled ? 1 : -1),
+          ),
+        }));
       setNotice(
         enabled
           ? `${originalNickname}을(를) ${result.nickname}(으)로 표시해.`
@@ -361,6 +382,27 @@ export default function AdminPage() {
       setMaskingNickname('');
     }
   }
+  async function toggleAllNicknameMasks(enabled: boolean) {
+    setBulkMasking(true);
+    try {
+      const result = await api<{ updated: number }>('/api/admin/rankings', {
+        method: 'PATCH',
+        body: JSON.stringify({ all: true, enabled }),
+      });
+      await Promise.all([loadRankings(), loadAudit()]);
+      setNotice(
+        enabled
+          ? `전체 닉네임을 우땅이 이름으로 바꿨어. (${result.updated}개)`
+          : '전체 닉네임을 원래 이름으로 돌렸어.',
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : '전체 닉네임을 바꾸지 못했어.',
+      );
+    } finally {
+      setBulkMasking(false);
+    }
+  }
   async function clearRankings() {
     try {
       await api('/api/admin/reset', {
@@ -371,6 +413,7 @@ export default function AdminPage() {
       setResetText('');
       setRankings([]);
       setRankingTotal(0);
+      setMaskSummary({ totalNicknames: 0, maskedNicknames: 0 });
       await Promise.all([loadRankings(), loadAudit()]);
       setNotice('랭킹을 모두 비웠어. 플레이 통계는 그대로 남아 있어.');
     } catch (error) {
@@ -837,7 +880,36 @@ export default function AdminPage() {
                 <thead>
                   <tr>
                     <th>순위</th>
-                    <th>닉네임</th>
+                    <th scope="col" aria-label="닉네임 관리">
+                      <div className="nickname-heading">
+                        <span>닉네임</span>
+                        <label>
+                          <input
+                            type="checkbox"
+                            aria-label="전체 닉네임에 우땅이 표시 이름 적용"
+                            checked={
+                              maskSummary.totalNicknames > 0 &&
+                              maskSummary.maskedNicknames ===
+                                maskSummary.totalNicknames
+                            }
+                            ref={(input) => {
+                              if (input)
+                                input.indeterminate =
+                                  maskSummary.maskedNicknames > 0 &&
+                                  maskSummary.maskedNicknames <
+                                    maskSummary.totalNicknames;
+                            }}
+                            disabled={
+                              bulkMasking || maskSummary.totalNicknames === 0
+                            }
+                            onChange={(event) =>
+                              void toggleAllNicknameMasks(event.target.checked)
+                            }
+                          />
+                          <span>전체 적용</span>
+                        </label>
+                      </div>
+                    </th>
                     <th>점수</th>
                     <th>비거리</th>
                     <th>홈런</th>
@@ -861,7 +933,10 @@ export default function AdminPage() {
                             <input
                               type="checkbox"
                               checked={row.nicknameMasked === 1}
-                              disabled={maskingNickname === row.originalNickname}
+                              disabled={
+                                bulkMasking ||
+                                maskingNickname === row.originalNickname
+                              }
                               onChange={(event) =>
                                 void toggleNicknameMask(row, event.target.checked)
                               }
