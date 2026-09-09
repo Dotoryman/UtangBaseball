@@ -1223,8 +1223,8 @@ export default function Home() {
               <button
                 type="button"
                 className="intro-brand brand-home"
-                onClick={returnHome}
-                aria-label="우땅야구 시작 화면"
+                onClick={() => window.location.reload()}
+                aria-label="우땅야구 새로고침"
               >
                 <img src="/utang-sun-logo.png" alt="햇님 우땅이" />
                 <strong>우땅야구</strong>

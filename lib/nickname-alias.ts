@@ -63,3 +63,45 @@ export function pickUtangNickname(
   );
   return choices[index];
 }
+
+export async function ensureNicknameAlias(
+  db: D1Database,
+  originalNickname: string,
+) {
+  const existing = await db
+    .prepare(
+      'SELECT replacement_nickname replacementNickname, enabled FROM nickname_aliases WHERE original_nickname = ?',
+    )
+    .bind(originalNickname)
+    .first<{ replacementNickname: string; enabled: number }>();
+  if (existing) return existing;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const used = await db
+      .prepare('SELECT replacement_nickname replacementNickname FROM nickname_aliases')
+      .all<{ replacementNickname: string }>();
+    const replacementNickname = pickUtangNickname(
+      (used.results ?? []).map((row) => row.replacementNickname),
+    );
+    try {
+      const inserted = await db
+        .prepare(`INSERT OR IGNORE INTO nickname_aliases(
+          original_nickname, replacement_nickname, enabled, updated_at
+        ) VALUES (?, ?, 1, ?)`)
+        .bind(originalNickname, replacementNickname, Date.now())
+        .run();
+      if (inserted.meta.changes)
+        return { replacementNickname, enabled: 1 };
+      const raced = await db
+        .prepare(
+          'SELECT replacement_nickname replacementNickname, enabled FROM nickname_aliases WHERE original_nickname = ?',
+        )
+        .bind(originalNickname)
+        .first<{ replacementNickname: string; enabled: number }>();
+      if (raced) return raced;
+    } catch {
+      // A different request may have claimed the same friendly alias.
+    }
+  }
+  throw new Error('고유한 우땅이 표시 이름을 만들지 못했어.');
+}

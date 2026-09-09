@@ -18,6 +18,14 @@ const migration = await readFile(
   new URL('../migrations/0008_nickname_aliases.sql', import.meta.url),
   'utf8',
 );
+const defaultMigration = await readFile(
+  new URL('../migrations/0010_default_nickname_aliases.sql', import.meta.url),
+  'utf8',
+);
+const gameRoute = await readFile(
+  new URL('../app/api/game/route.ts', import.meta.url),
+  'utf8',
+);
 
 test('replacement nicknames are friendly Utang names within the score limit', () => {
   assert.ok(UTANG_NICKNAME_ALIASES.length >= 30);
@@ -49,4 +57,11 @@ test('public rankings switch display names without overwriting score nicknames',
   assert.doesNotMatch(adminRankings, /UPDATE scores SET nickname/);
   assert.match(migration, /original_nickname TEXT PRIMARY KEY/);
   assert.match(migration, /UNIQUE INDEX IF NOT EXISTS nickname_aliases_replacement_idx/);
+});
+
+test('existing and newly completed players receive aliases by default', () => {
+  assert.match(defaultMigration, /ROW_NUMBER\(\) OVER/);
+  assert.match(defaultMigration, /WHEN 40 THEN '끝까지뛴 우땅이'/);
+  assert.match(defaultMigration, /ELSE printf\('%d번타자 우땅이'/);
+  assert.match(gameRoute, /ensureNicknameAlias\(env\.DB, row\.nickname\)/);
 });

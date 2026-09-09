@@ -8,6 +8,7 @@ import {
 import { batProgress, playerIdentity } from '@/lib/player-session';
 import { funnelStatement } from '@/lib/analytics';
 import { validateNickname } from '@/lib/nickname-filter';
+import { ensureNicknameAlias } from '@/lib/nickname-alias';
 
 type PitchType = '직구' | '커브' | '체인지업';
 type Outcome =
@@ -350,6 +351,15 @@ export async function POST(request: Request) {
       : await updateStatement.run();
     if (!update.meta.changes)
       return Response.json({ error: '이미 판정된 공입니다.' }, { status: 409 });
+    if (completedAt)
+      await ensureNicknameAlias(env.DB, row.nickname).catch((error) =>
+        console.error(
+          JSON.stringify({
+            message: 'default nickname alias failed',
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        ),
+      );
     let dailyBat = null;
     if (completedAt && row.player_id) {
       const completed = await env.DB.prepare(
