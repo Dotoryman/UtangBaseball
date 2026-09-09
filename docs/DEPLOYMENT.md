@@ -13,7 +13,8 @@
 1. `wrangler d1 create utang-baseball-scores`로 데이터베이스를 만든다.
 2. 출력된 `database_id`를 `wrangler.jsonc`에 넣는다.
 3. `npm run db:migrate`로 원격 스키마를 적용한다.
-4. `npm run deploy`로 빌드 결과와 함께 Workers에 배포한다.
+4. `wrangler secret put ADMIN_PASSWORD`와 `wrangler secret put ADMIN_SESSION_SECRET`로 관리자 비밀값을 등록한다.
+5. `npm run deploy`로 빌드 결과와 함께 Workers에 배포한다.
 
 ## 이후 릴리스
 

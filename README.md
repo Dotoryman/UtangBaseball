@@ -40,6 +40,7 @@
 - 타격 성공 시 공 전환, 실패 시 포수 캐치까지 이어지는 상황별 연출
 - 모바일 우선 반응형 UI와 동작 줄이기 접근성 지원
 - Cloudflare Workers + D1 및 공식 도메인 배포
+- 비밀번호와 보안 쿠키로 보호되는 반응형 운영 대시보드, 랭킹·금지어·통계 관리
 
 ## 로컬 실행과 검증
 
@@ -56,3 +57,5 @@ npm run build
 ```
 
 배포 구성은 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)를 참고하세요.
+
+운영 페이지의 인증과 데이터 관리 방식은 [docs/ADMIN.md](docs/ADMIN.md)를 참고하세요.

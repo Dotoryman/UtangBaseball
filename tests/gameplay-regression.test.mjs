@@ -19,13 +19,13 @@ test('v1.0 keeps the approved pitch and contact timing constants unchanged', () 
 });
 
 test('successful contact removes the incoming ball before showing the batted ball', () => {
-  assert.match(client, /triggerHitHaptic\(nextContact\.outcome\); setPitch\(null\); setBallFlying\(true\)/);
-  assert.match(client, /if \(!isWhiff\) setPitch\(null\)/);
+  assert.match(client, /triggerHitHaptic\(nextContact\.outcome\);\s+setPitch\(null\);\s+setBallFlying\(true\)/);
+  assert.match(client, /if \(!isWhiff\)\s+setPitch\(null\)/);
 });
 
 test('hit vibration is attached to the existing 78ms contact frame', () => {
-  assert.match(client, /previewHaptic = true; triggerHitHaptic\(nextContact\.outcome\); setPitch\(null\); setBallFlying\(true\)/);
-  assert.match(client, /if \(!previewHaptic\) triggerHitHaptic\(nextContact\.outcome\)/);
+  assert.match(client, /previewHaptic = true;\s+triggerHitHaptic\(nextContact\.outcome\);\s+setPitch\(null\);\s+setBallFlying\(true\)/);
+  assert.match(client, /if \(!previewHaptic\)\s+triggerHitHaptic\(nextContact\.outcome\)/);
 });
 
 test('server chooses the bat from completed scores and ignores a client bat field', () => {

@@ -2,8 +2,11 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "utang-baseball",
   "main": "dist/server/index.js",
-  "compatibility_date": "2026-05-22",
+  "compatibility_date": "2026-09-09",
   "compatibility_flags": ["nodejs_compat"],
+  "secrets": {
+    "required": ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET"],
+  },
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS",
