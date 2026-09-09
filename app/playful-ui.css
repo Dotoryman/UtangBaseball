@@ -62,9 +62,6 @@
 .about-card > img { display: block; width: 118px; height: 102px; margin: 0 auto; object-fit: contain; object-position: center; border-radius: 0; }
 .admin-secret-trigger { display:block; width:118px; height:102px; margin:0 auto; padding:0; border:0; background:transparent; cursor:pointer; }
 .admin-secret-trigger img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; }
-.ranking-row.has-report { grid-template-columns:31px minmax(0,1fr) auto 24px; }
-.nickname-report { display:grid; place-items:center; width:22px; height:22px; padding:0; border:0; border-radius:7px; color:#9b7e69; background:transparent; cursor:pointer; }
-.nickname-report:hover,.nickname-report:focus-visible { color:#a94e3d; background:#f5dfd3; outline:none; }
 .about-card h2 { margin: 5px 0 13px; font-size: 24px; font-weight: 950; letter-spacing: -1.2px; }
 .about-intro { margin: 0; color: #614939; font-size: 14px; font-weight: 750; line-height: 1.65; }
 .about-intro span { white-space: nowrap; }

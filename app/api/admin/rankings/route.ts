@@ -40,8 +40,7 @@ export async function GET(request: Request) {
       CASE WHEN a.enabled = 1 THEN a.replacement_nickname ELSE s.nickname END nickname,
       a.replacement_nickname replacementNickname, COALESCE(a.enabled, 0) nicknameMasked,
       s.score, s.home_runs homeRuns,
-      s.distance, s.max_combo maxCombo, s.played_at playedAt,
-      COALESCE((SELECT COUNT(*) FROM nickname_reports r WHERE r.nickname = s.nickname), 0) reportCount
+      s.distance, s.max_combo maxCombo, s.played_at playedAt
       FROM scores s LEFT JOIN nickname_aliases a ON a.original_nickname = s.nickname
       WHERE ${where} ORDER BY ${order} LIMIT 30 OFFSET ?`).bind(
         ...bindings,

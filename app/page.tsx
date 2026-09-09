@@ -7,7 +7,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Flag,
   Flame,
   HelpCircle,
   Home as HomeIcon,
@@ -90,7 +89,7 @@ type StartResponse = {
 };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v1.1.1';
+const APP_VERSION = 'v1.1.2';
 const BATTER_FRAMES = [
   'ready',
   'load',
@@ -1151,19 +1150,6 @@ export default function Home() {
     shareBusy.current = false;
     window.setTimeout(() => setShareNotice(''), 2400);
   }, [homeRuns, maxCombo, maxDistance, nickname, score]);
-  const reportNickname = useCallback(async (reportedNickname: string) => {
-    try {
-      const response = await fetch('/api/nickname-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: reportedNickname }),
-      });
-      const data = (await response.json().catch(() => ({}))) as { duplicate?: boolean };
-      setNetworkNotice(data.duplicate ? '이미 알려준 닉네임이야.' : '알려줘서 고마어! 살펴볼게.');
-    } catch {
-      setNetworkNotice('신고를 받지 못했어. 잠시 뒤 다시 눌러줘.');
-    }
-  }, []);
   const returnHome = useCallback(() => {
     gameRunRef.current += 1;
     pitchLockedRef.current = true;
@@ -1333,13 +1319,12 @@ export default function Home() {
                     rankingPage * RANKING_PAGE_SIZE + index + 1;
                   return (
                     <div
-                      className={`ranking-row has-report rank-${rankNumber}`}
+                      className={`ranking-row rank-${rankNumber}`}
                       key={`${item.playedAt}-${rankNumber}`}
                     >
                       <b>{rankNumber}</b>
                       <span>{item.nickname}</span>
                       <strong>{item.score.toLocaleString()}점</strong>
-                      <button type="button" className="nickname-report" onClick={() => void reportNickname(item.nickname)} aria-label={`${item.nickname} 닉네임 신고`} title="닉네임 신고"><Flag size={11} /></button>
                     </div>
                   );
                 })
@@ -1778,11 +1763,10 @@ export default function Home() {
                 <Trophy size={16} /> 오늘 잘 친 우땅이 TOP 3
               </div>
               {records.slice(0, 3).map((item, index) => (
-                <div className="ranking-row has-report" key={`${item.playedAt}-${index}`}>
+                <div className="ranking-row" key={`${item.playedAt}-${index}`}>
                   <b>{index + 1}</b>
                   <span>{item.nickname}</span>
                   <strong>{item.score.toLocaleString()}점</strong>
-                  <button type="button" className="nickname-report" onClick={() => void reportNickname(item.nickname)} aria-label={`${item.nickname} 닉네임 신고`} title="닉네임 신고"><Flag size={11} /></button>
                 </div>
               ))}
             </div>

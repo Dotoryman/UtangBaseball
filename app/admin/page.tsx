@@ -46,7 +46,6 @@ type Ranking = {
   distance: number;
   maxCombo: number;
   playedAt: number;
-  reportCount: number;
 };
 type MaskSummary = { totalNicknames: number; maskedNicknames: number };
 type BannedWord = { id: number; term: string; createdAt: number };
@@ -914,7 +913,6 @@ export default function AdminPage() {
                     <th>비거리</th>
                     <th>홈런</th>
                     <th>콤보</th>
-                    <th>신고</th>
                     <th>플레이 시간</th>
                     <th>관리</th>
                   </tr>
@@ -949,7 +947,6 @@ export default function AdminPage() {
                       <td>{row.distance}m</td>
                       <td>{row.homeRuns}</td>
                       <td>{row.maxCombo}</td>
-                      <td>{row.reportCount}</td>
                       <td>{kstDate(row.playedAt)}</td>
                       <td>
                         <button
