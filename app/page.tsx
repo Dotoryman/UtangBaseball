@@ -90,7 +90,7 @@ type StartResponse = {
 };
 
 const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v1.1.0';
+const APP_VERSION = 'v1.1.1';
 const BATTER_FRAMES = [
   'ready',
   'load',

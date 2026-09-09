@@ -33,13 +33,15 @@ function sinceFor(period: string) {
 async function leaderboard(period = 'all') {
   const since = sinceFor(period);
   const result = await env.DB.prepare(
-    `SELECT nickname, score, home_runs, distance, played_at
-     FROM scores
-     WHERE played_at >= ?
-       AND played_at > COALESCE((
+    `SELECT CASE WHEN a.enabled = 1 THEN a.replacement_nickname ELSE s.nickname END nickname,
+            s.score, s.home_runs, s.distance, s.played_at
+     FROM scores s
+     LEFT JOIN nickname_aliases a ON a.original_nickname = s.nickname
+     WHERE s.played_at >= ?
+       AND s.played_at > COALESCE((
          SELECT state_value FROM admin_state WHERE state_key = 'ranking_cleared_at'
        ), 0)
-     ORDER BY score DESC, played_at ASC
+     ORDER BY s.score DESC, s.played_at ASC
      LIMIT 50`,
   )
     .bind(since)

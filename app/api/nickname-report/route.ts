@@ -7,12 +7,16 @@ export async function POST(request: Request) {
     const body = await readLimitedJson(request);
     const nickname = typeof body.nickname === 'string' ? body.nickname.trim().slice(0, 10) : '';
     if (!nickname) return Response.json({ error: '신고할 닉네임이 없어.' }, { status: 400 });
-    const exists = await env.DB.prepare('SELECT 1 found FROM scores WHERE nickname = ? LIMIT 1').bind(nickname).first();
-    if (!exists) return Response.json({ error: '이미 사라진 기록이야.' }, { status: 404 });
+    const score = await env.DB.prepare(`SELECT s.nickname originalNickname
+      FROM scores s
+      LEFT JOIN nickname_aliases a ON a.original_nickname = s.nickname
+      WHERE s.nickname = ? OR (a.enabled = 1 AND a.replacement_nickname = ?)
+      LIMIT 1`).bind(nickname, nickname).first<{ originalNickname: string }>();
+    if (!score) return Response.json({ error: '이미 사라진 기록이야.' }, { status: 404 });
     const identity = playerIdentity(request);
     const result = await env.DB.prepare(
       'INSERT OR IGNORE INTO nickname_reports(nickname, reporter_id, created_at) VALUES (?, ?, ?)',
-    ).bind(nickname, identity.playerId, Date.now()).run();
+    ).bind(score.originalNickname, identity.playerId, Date.now()).run();
     return Response.json(
       { ok: true, duplicate: !result.meta.changes },
       { headers: identity.setCookie ? { 'Set-Cookie': identity.setCookie } : undefined },

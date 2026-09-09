@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import {
+  pickUtangNickname,
+  UTANG_NICKNAME_ALIASES,
+} from '../lib/nickname-alias.ts';
+
+const publicRankings = await readFile(
+  new URL('../app/api/scores/route.ts', import.meta.url),
+  'utf8',
+);
+const adminRankings = await readFile(
+  new URL('../app/api/admin/rankings/route.ts', import.meta.url),
+  'utf8',
+);
+const migration = await readFile(
+  new URL('../migrations/0008_nickname_aliases.sql', import.meta.url),
+  'utf8',
+);
+
+test('replacement nicknames are friendly Utang names within the score limit', () => {
+  assert.ok(UTANG_NICKNAME_ALIASES.length >= 30);
+  for (const nickname of UTANG_NICKNAME_ALIASES) {
+    assert.match(nickname, /우땅이$/);
+    assert.ok(nickname.length <= 10, nickname);
+  }
+});
+
+test('alias selection skips names already assigned to other players', () => {
+  const first = UTANG_NICKNAME_ALIASES[0];
+  assert.notEqual(pickUtangNickname([first], () => 0), first);
+});
+
+test('public rankings switch display names without overwriting score nicknames', () => {
+  assert.match(publicRankings, /LEFT JOIN nickname_aliases/);
+  assert.match(publicRankings, /CASE WHEN a\.enabled = 1 THEN a\.replacement_nickname/);
+  assert.match(adminRankings, /export async function PATCH/);
+  assert.match(adminRankings, /ON CONFLICT\(original_nickname\) DO UPDATE SET/);
+  assert.doesNotMatch(adminRankings, /UPDATE scores SET nickname/);
+  assert.match(migration, /original_nickname TEXT PRIMARY KEY/);
+  assert.match(migration, /UNIQUE INDEX IF NOT EXISTS nickname_aliases_replacement_idx/);
+});

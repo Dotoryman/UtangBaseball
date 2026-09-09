@@ -339,7 +339,8 @@ export async function POST(request: Request) {
             nickname, score, home_runs, distance, played_at, session_id, player_id,
             misses, fouls, infield_hits, singles, doubles, triples, total_distance, max_combo
           ) SELECT nickname, score, home_runs, max_distance, completed_at, id, player_id,
-            misses, fouls, infield_hits, singles, doubles, triples, total_distance, max_combo
+            MAX(0, 10 - (fouls + infield_hits + singles + doubles + triples + home_runs)),
+            fouls, infield_hits, singles, doubles, triples, total_distance, max_combo
             FROM game_sessions WHERE id = ? AND completed_at = ?`).bind(
               id,
               completedAt,

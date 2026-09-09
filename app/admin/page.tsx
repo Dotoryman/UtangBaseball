@@ -38,6 +38,9 @@ type DashboardData = {
 type Ranking = {
   id: number;
   nickname: string;
+  originalNickname: string;
+  replacementNickname: string | null;
+  nicknameMasked: number;
   score: number;
   homeRuns: number;
   distance: number;
@@ -75,6 +78,8 @@ const ACTION_LABELS: Record<string, string> = {
   ADD_BANNED_WORD: '금지어 추가',
   DELETE_BANNED_WORD: '금지어 삭제',
   CLEAR_RANKINGS: '랭킹 전체 비우기',
+  MASK_NICKNAME: '닉네임 표시 이름 적용',
+  RESTORE_NICKNAME: '원래 닉네임 복원',
 };
 
 function number(value: unknown) {
@@ -178,6 +183,7 @@ export default function AdminPage() {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetText, setResetText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [maskingNickname, setMaskingNickname] = useState('');
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ period });
@@ -316,6 +322,44 @@ export default function AdminPage() {
       body: JSON.stringify({ id }),
     });
     await loadWords();
+  }
+  async function toggleNicknameMask(row: Ranking, enabled: boolean) {
+    const originalNickname = row.originalNickname;
+    setMaskingNickname(originalNickname);
+    try {
+      const result = await api<{
+        nickname: string;
+        replacementNickname: string;
+        nicknameMasked: boolean;
+      }>('/api/admin/rankings', {
+        method: 'PATCH',
+        body: JSON.stringify({ nickname: originalNickname, enabled }),
+      });
+      setRankings((current) =>
+        current.map((item) =>
+          item.originalNickname === originalNickname
+            ? {
+                ...item,
+                nickname: result.nickname,
+                replacementNickname: result.replacementNickname,
+                nicknameMasked: result.nicknameMasked ? 1 : 0,
+              }
+            : item,
+        ),
+      );
+      setNotice(
+        enabled
+          ? `${originalNickname}을(를) ${result.nickname}(으)로 표시해.`
+          : `${originalNickname}의 원래 닉네임을 다시 표시해.`,
+      );
+      void loadAudit();
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : '표시 닉네임을 바꾸지 못했어.',
+      );
+    } finally {
+      setMaskingNickname('');
+    }
   }
   async function clearRankings() {
     try {
@@ -808,7 +852,23 @@ export default function AdminPage() {
                     <tr key={row.id}>
                       <td>{(page - 1) * 30 + index + 1}</td>
                       <td>
-                        <b>{row.nickname}</b>
+                        <div className="nickname-control">
+                          <b>{row.nickname}</b>
+                          {row.nicknameMasked === 1 && (
+                            <small>원래 이름: {row.originalNickname}</small>
+                          )}
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={row.nicknameMasked === 1}
+                              disabled={maskingNickname === row.originalNickname}
+                              onChange={(event) =>
+                                void toggleNicknameMask(row, event.target.checked)
+                              }
+                            />
+                            <span>우땅이 이름으로 표시</span>
+                          </label>
+                        </div>
                       </td>
                       <td>{row.score.toLocaleString()}</td>
                       <td>{row.distance}m</td>
