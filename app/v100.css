@@ -44,17 +44,19 @@
 .ranking-row.rank-2 b::after { content: '✦'; color: #8aa0b4; }
 .ranking-row.rank-3 b::after { content: '★'; color: #bf7641; font-size: 9px; }
 
-.comic-contact-effect { position: absolute; z-index: 30; left: 21%; bottom: 24%; width: 86px; height: 86px; display: grid; place-items: center; pointer-events: none; animation: comic-contact-pop 650ms ease-out both; }
-.comic-contact-effect::before { content: ''; position: absolute; inset: 3px; background: repeating-conic-gradient(from 6deg, #ffe56c 0deg 8deg, transparent 8deg 24deg); clip-path: polygon(50% 0,59% 31%,79% 8%,73% 38%,100% 34%,77% 52%,96% 69%,68% 65%,70% 96%,52% 72%,36% 100%,37% 68%,7% 82%,29% 57%,0 47%,32% 43%,15% 16%,43% 34%); opacity: .92; }
-.comic-contact-effect b { position: relative; z-index: 2; color: #8c321f; font: 950 24px/1 'Arial Rounded MT Bold', 'Malgun Gothic', sans-serif; letter-spacing: -2px; text-shadow: 2px 2px 0 #fff8d7; transform: rotate(-10deg); }
-.comic-contact-effect i { position: absolute; width: 19px; height: 3px; border-radius: 99px; background: #6a3828; transform-origin: 45px 1px; }
-.comic-contact-effect i:nth-of-type(1) { transform: translateX(43px) rotate(6deg); }
-.comic-contact-effect i:nth-of-type(2) { transform: translateX(43px) rotate(96deg); }
-.comic-contact-effect i:nth-of-type(3) { transform: translateX(43px) rotate(186deg); }
-.comic-contact-effect i:nth-of-type(4) { transform: translateX(43px) rotate(276deg); }
-.comic-foul::before { background: repeating-conic-gradient(from 6deg, #cceaff 0deg 8deg, transparent 8deg 24deg); }
+.comic-contact-effect { position: absolute; z-index: 30; left: 21%; bottom: 24%; width: 86px; height: 86px; display: grid; place-items: center; pointer-events: none; isolation: isolate; animation: comic-contact-pop 650ms ease-out both; }
+.comic-contact-effect::before,
+.comic-contact-effect::after { content: ''; position: absolute; clip-path: polygon(50% 0,59% 31%,79% 8%,73% 38%,100% 34%,77% 52%,96% 69%,68% 65%,70% 96%,52% 72%,36% 100%,37% 68%,7% 82%,29% 57%,0 47%,32% 43%,15% 16%,43% 34%); }
+.comic-contact-effect::before { z-index: -2; inset: 0; background: #633a27; filter: drop-shadow(0 3px 2px rgb(49 25 13 / 24%)); }
+.comic-contact-effect::after { z-index: -1; inset: 4px; background: #ffe166; }
+.comic-contact-effect b { display: grid; place-items: center; width: 56px; height: 42px; color: #8c321f; border: 2px solid #fff8d7; border-radius: 50%; background: #fff5c7; box-shadow: 0 0 0 2px #633a27; font: 950 24px/1 'Arial Rounded MT Bold', 'Malgun Gothic', sans-serif; letter-spacing: -2px; text-shadow: 1px 1px 0 white; transform: rotate(-8deg); }
+.comic-contact-effect i { display: none; }
+.comic-foul::after { background: #bfe8ff; }
+.comic-foul b { color: #245f83; background: #e9f8ff; }
 .comic-homer { width: 105px; height: 105px; left: 19%; bottom: 22%; }
-.comic-homer b { color: #b21f2d; font-size: 29px; }
+.comic-homer::before { background: #7e1e29; }
+.comic-homer::after { background: #ffbd45; }
+.comic-homer b { width: 67px; height: 50px; color: #b21f2d; background: #fff0a8; font-size: 29px; }
 @keyframes comic-contact-pop { 0% { opacity: 0; transform: scale(.35) rotate(-8deg); } 36% { opacity: 1; transform: scale(1.16) rotate(3deg); } 72% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.08) translateY(-7px); } }
 @media (prefers-reduced-motion: reduce) { .comic-contact-effect { animation: none; opacity: 1; } }
 
