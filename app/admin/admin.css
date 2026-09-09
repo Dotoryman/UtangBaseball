@@ -609,6 +609,22 @@ a {
   background: white;
   padding: 0 10px;
 }
+.table-tools .clear-ranking-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 39px;
+  padding: 0 12px;
+  border: 1px solid #e6aca0;
+  border-radius: 12px;
+  color: #a63e32;
+  background: #fff1eb;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+}
 .admin-table-wrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -720,12 +736,10 @@ a {
   line-height: 1;
   cursor: pointer;
 }
-.setting-list,
 .audit-list {
   display: grid;
   gap: 7px;
 }
-.setting-list > div,
 .audit-list > div {
   display: flex;
   align-items: center;
@@ -745,27 +759,6 @@ a {
 }
 .audit-list small {
   color: #a88c78;
-}
-.muted {
-  margin: 14px 2px 0 !important;
-  font-size: 11px !important;
-}
-.danger-zone {
-  border-color: #e6aca0;
-  background: #fff5ef;
-}
-.danger-zone header svg {
-  color: #bd4c3e;
-}
-.danger-zone > button {
-  height: 42px;
-  border: 0;
-  border-radius: 12px;
-  color: white;
-  background: #b94c3f;
-  padding: 0 16px;
-  font-weight: 900;
-  cursor: pointer;
 }
 .admin-modal {
   position: fixed;
@@ -928,12 +921,16 @@ a {
   }
   .table-tools {
     width: 100%;
+    flex-wrap: wrap;
   }
   .table-tools label {
     flex: 1;
   }
   .table-tools input {
     width: 100%;
+  }
+  .table-tools .clear-ranking-button {
+    flex: 1 0 100%;
   }
   .audit-list > div {
     grid-template-columns: 1fr auto;

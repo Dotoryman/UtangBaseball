@@ -23,8 +23,11 @@ export async function GET(request: Request) {
   const sortKey = url.searchParams.get('sort') as keyof typeof SORTS;
   const order = SORTS[sortKey] ?? SORTS.score;
   const where = search
-    ? "s.played_at >= ? AND s.played_at < ? AND s.nickname LIKE ? ESCAPE '\\'"
-    : 's.played_at >= ? AND s.played_at < ?';
+    ? `s.played_at >= ? AND s.played_at < ?
+       AND s.played_at > COALESCE((SELECT state_value FROM admin_state WHERE state_key = 'ranking_cleared_at'), 0)
+       AND s.nickname LIKE ? ESCAPE '\\'`
+    : `s.played_at >= ? AND s.played_at < ?
+       AND s.played_at > COALESCE((SELECT state_value FROM admin_state WHERE state_key = 'ranking_cleared_at'), 0)`;
   const bindings: Array<string | number> = [from, to];
   if (search)
     bindings.push(

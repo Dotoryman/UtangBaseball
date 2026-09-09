@@ -12,11 +12,20 @@ function sinceFor(period: string) {
   const kstOffset = 9 * 60 * 60 * 1000;
   const now = new Date(Date.now() + kstOffset);
   if (period === 'daily') {
-    return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - kstOffset;
+    return (
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+      kstOffset
+    );
   }
   if (period === 'weekly') {
     const day = (now.getUTCDay() + 6) % 7;
-    return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - day) - kstOffset;
+    return (
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - day,
+      ) - kstOffset
+    );
   }
   return 0;
 }
@@ -27,6 +36,9 @@ async function leaderboard(period = 'all') {
     `SELECT nickname, score, home_runs, distance, played_at
      FROM scores
      WHERE played_at >= ?
+       AND played_at > COALESCE((
+         SELECT state_value FROM admin_state WHERE state_key = 'ranking_cleared_at'
+       ), 0)
      ORDER BY score DESC, played_at ASC
      LIMIT 50`,
   )

@@ -73,10 +73,6 @@ export async function GET(request: Request) {
         from,
         to,
       ),
-      env.DB.prepare(`SELECT COUNT(DISTINCT player_id) recent_users FROM game_sessions
-        WHERE created_at >= ? AND player_id IS NOT NULL`).bind(
-        Date.now() - 5 * 60 * 1000,
-      ),
       env.DB.prepare(`SELECT COALESCE(SUM(completed_games), 0) plays,
         COALESCE(SUM(home_runs), 0) homeRuns,
         COALESCE(SUM(infield_hits + singles + doubles + triples + home_runs), 0) hits,
@@ -97,8 +93,7 @@ export async function GET(request: Request) {
         funnel: results[4].results ?? [],
         distributions: first(5),
         recent: results[6].results ?? [],
-        recentUsers: Number(first(7).recent_users ?? 0),
-        lifetime: first(8),
+        lifetime: first(7),
       },
       { headers: { 'Cache-Control': 'private, no-store' } },
     );

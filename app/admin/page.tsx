@@ -14,7 +14,7 @@ import {
   LogOut,
   RefreshCcw,
   Search,
-  Settings,
+  History,
   Share2,
   ShieldCheck,
   Trash2,
@@ -33,7 +33,6 @@ type DashboardData = {
   funnel: MetricRow[];
   distributions: MetricRow;
   recent: MetricRow[];
-  recentUsers: number;
   lifetime: MetricRow;
 };
 type Ranking = {
@@ -56,7 +55,6 @@ type AuditData = {
     details: string | null;
     createdAt: number;
   }>;
-  settings: Array<{ settingKey: string; settingValue: number; label: string }>;
 };
 
 const FUNNEL_LABELS: Record<string, string> = {
@@ -76,7 +74,7 @@ const ACTION_LABELS: Record<string, string> = {
   DELETE_SCORE: '랭킹 기록 삭제',
   ADD_BANNED_WORD: '금지어 추가',
   DELETE_BANNED_WORD: '금지어 삭제',
-  RESET_ALL_RECORDS: '전체 기록 초기화',
+  CLEAR_RANKINGS: '랭킹 전체 비우기',
 };
 
 function number(value: unknown) {
@@ -175,7 +173,7 @@ export default function AdminPage() {
   const [page, setPage] = useState(1);
   const [words, setWords] = useState<BannedWord[]>([]);
   const [newWord, setNewWord] = useState('');
-  const [audit, setAudit] = useState<AuditData>({ logs: [], settings: [] });
+  const [audit, setAudit] = useState<AuditData>({ logs: [] });
   const [deleteTarget, setDeleteTarget] = useState<Ranking | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetText, setResetText] = useState('');
@@ -319,7 +317,7 @@ export default function AdminPage() {
     });
     await loadWords();
   }
-  async function resetAll() {
+  async function clearRankings() {
     try {
       await api('/api/admin/reset', {
         method: 'POST',
@@ -328,10 +326,13 @@ export default function AdminPage() {
       setResetOpen(false);
       setResetText('');
       setRankings([]);
-      await Promise.all([loadDashboard(), loadAudit()]);
-      setNotice('사용자 기록을 모두 초기화했어.');
+      setRankingTotal(0);
+      await Promise.all([loadRankings(), loadAudit()]);
+      setNotice('랭킹을 모두 비웠어. 플레이 통계는 그대로 남아 있어.');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '초기화하지 못했어.');
+      setNotice(
+        error instanceof Error ? error.message : '랭킹을 비우지 못했어.',
+      );
     }
   }
 
@@ -418,7 +419,11 @@ export default function AdminPage() {
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
-        <Link className="admin-brand" href="/" aria-label="우땅야구 게임으로 이동">
+        <Link
+          className="admin-brand"
+          href="/"
+          aria-label="우땅야구 게임으로 이동"
+        >
           <img src="/utang-sun-logo.png" alt="" />
           <div>
             <strong>우땅 연구소</strong>
@@ -432,7 +437,7 @@ export default function AdminPage() {
               ['stats', BarChart3, '플레이 통계'],
               ['ranking', Trophy, '랭킹 관리'],
               ['words', Ban, '금지어 관리'],
-              ['lab', Settings, '연구소 설정'],
+              ['lab', History, '운영 기록'],
             ] as const
           ).map(([id, Icon, label]) => (
             <button
@@ -462,7 +467,7 @@ export default function AdminPage() {
                     ? '오늘의 우땅왕 관리'
                     : tab === 'words'
                       ? '예쁜 닉네임 지킴이'
-                      : '우땅 연구소 창고'}
+                      : '관리자 작업 기록'}
             </h1>
           </div>
           <div className="admin-header-actions">
@@ -532,7 +537,6 @@ export default function AdminPage() {
                 icon={<Users />}
                 label="플레이한 우땅이"
                 value={`${pretty(users)}명`}
-                note={`최근 활동 ${pretty(data?.recentUsers)}명`}
               />
               <Metric
                 icon={<CircleDot />}
@@ -602,7 +606,7 @@ export default function AdminPage() {
                   <span className="lab-badge">누적 재미 통계</span>
                   <h2>우땅 연구소 관측 기록</h2>
                 </div>
-              <img src="/utang-countdown-v071.png" alt="공을 든 우땅이" />
+                <img src="/utang-countdown-v071.png" alt="공을 든 우땅이" />
               </header>
               <div>
                 <span>
@@ -776,6 +780,12 @@ export default function AdminPage() {
                   <option value="newest">최신순</option>
                   <option value="distance">비거리순</option>
                 </select>
+                <button
+                  className="clear-ranking-button"
+                  onClick={() => setResetOpen(true)}
+                >
+                  <Trash2 size={16} /> 전체 비우기
+                </button>
               </div>
             </header>
             <div className="admin-table-wrap">
@@ -886,55 +896,21 @@ export default function AdminPage() {
         )}
 
         {tab === 'lab' && (
-          <>
-            <section className="admin-grid two">
-              <article className="admin-card">
-                <header>
-                  <h2>게임 밸런스 기준</h2>
-                  <span>v1.1.0은 안전하게 조회만</span>
-                </header>
-                <div className="setting-list">
-                  {audit.settings.map((setting) => (
-                    <div key={setting.settingKey}>
-                      <span>{setting.label}</span>
-                      <b>{setting.settingValue}</b>
-                    </div>
-                  ))}
+          <article className="admin-card">
+            <header>
+              <h2>관리자 작업 로그</h2>
+              <span>최근 100건</span>
+            </header>
+            <div className="audit-list">
+              {audit.logs.map((log) => (
+                <div key={log.id}>
+                  <b>{ACTION_LABELS[log.action] ?? log.action}</b>
+                  <span>{log.details}</span>
+                  <small>{kstDate(log.createdAt)}</small>
                 </div>
-                <p className="muted">
-                  타격 속도와 판정은 배포된 게임 코드 그대로 유지돼.
-                </p>
-              </article>
-              <article className="admin-card danger-zone">
-                <header>
-                  <h2>전체 기록 초기화</h2>
-                  <Trash2 />
-                </header>
-                <p>
-                  랭킹·게임·통계·퍼널·신고 기록을 모두 지워. 금지어와 운영 설정,
-                  관리자 작업 로그는 남아.
-                </p>
-                <button onClick={() => setResetOpen(true)}>
-                  전체 기록 초기화
-                </button>
-              </article>
-            </section>
-            <article className="admin-card">
-              <header>
-                <h2>관리자 작업 로그</h2>
-                <span>최근 100건</span>
-              </header>
-              <div className="audit-list">
-                {audit.logs.map((log) => (
-                  <div key={log.id}>
-                    <b>{ACTION_LABELS[log.action] ?? log.action}</b>
-                    <span>{log.details}</span>
-                    <small>{kstDate(log.createdAt)}</small>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </>
+              ))}
+            </div>
+          </article>
         )}
       </section>
       {deleteTarget && (
@@ -960,9 +936,12 @@ export default function AdminPage() {
         <div className="admin-modal">
           <div className="reset-modal">
             <Trash2 />
-            <h2>정말 전부 초기화할까?</h2>
-            <p>되돌릴 수 없어. 아래 문구를 똑같이 입력해줘.</p>
-            <code>우땅야구 기록 전체 초기화</code>
+            <h2>랭킹을 모두 비울까?</h2>
+            <p>
+              현재 랭킹 기록만 사라져. 플레이 통계와 게임 기록은 안전하게 남아.
+              아래 문구를 똑같이 입력해줘.
+            </p>
+            <code>오늘의 우땅왕 랭킹 전체 비우기</code>
             <input
               value={resetText}
               onChange={(event) => setResetText(event.target.value)}
@@ -979,10 +958,10 @@ export default function AdminPage() {
               </button>
               <button
                 className="danger"
-                disabled={resetText !== '우땅야구 기록 전체 초기화'}
-                onClick={() => void resetAll()}
+                disabled={resetText !== '오늘의 우땅왕 랭킹 전체 비우기'}
+                onClick={() => void clearRankings()}
               >
-                전체 초기화
+                랭킹 비우기
               </button>
             </footer>
           </div>
