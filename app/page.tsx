@@ -27,9 +27,15 @@ import {
   type BatType,
   type DailyBatState,
 } from '@/lib/daily-bat';
+import {
+  CONTACT_PROGRESS,
+  PITCHES,
+  TOTAL_PITCHES,
+  WINDUP_MS,
+  type PitchType,
+} from '@/lib/game-config';
 
 type Screen = 'intro' | 'playing' | 'result';
-type PitchType = '직구' | '커브' | '체인지업';
 type Outcome =
   | 'WHIFF'
   | 'FOUL'
@@ -88,8 +94,7 @@ type StartResponse = {
   dayStart?: number;
 };
 
-const TOTAL_PITCHES = 10;
-const APP_VERSION = 'v1.1.3';
+const APP_VERSION = 'v1.2.0';
 const BATTER_FRAMES = [
   'ready',
   'load',
@@ -130,14 +135,7 @@ const BAT_COLLECTION: Array<{ type: BatType; games: number }> = [
   { type: 'diamond', games: 4 },
 ];
 const RANKING_PAGE_SIZE = 5;
-const WINDUP_MS = 760;
-const CONTACT_PROGRESS = 0.86;
 const SWING_CONTACT_FRAME_MS = 78;
-const PITCHES: Array<{ type: PitchType; duration: number }> = [
-  { type: '직구', duration: 1650 },
-  { type: '커브', duration: 1900 },
-  { type: '체인지업', duration: 2150 },
-];
 const RESULT_META: Record<
   Outcome,
   { label: string; pose: string; tier: string }
@@ -1094,12 +1092,11 @@ export default function Home() {
           : score >= 5000
             ? '동네 야구 우땅이'
             : '야구공 구경 온 우땅이';
+  const resultBat = dailyBatState.equippedBat;
   const resultImage =
-    homeRuns > 0
-      ? followPoseForBat(activeBat)
-      : score >= 5000
-        ? '/utang-pose-good-authentic.png'
-        : missPoseForBat(activeBat);
+    homeRuns > 0 || score >= 5000
+      ? followPoseForBat(resultBat)
+      : missPoseForBat(resultBat);
   const shareScore = useCallback(async () => {
     if (shareBusy.current) return;
     trackEvent('share_click');
@@ -1261,7 +1258,13 @@ export default function Home() {
                   <img src="/utang-sticker-clover-v091.png" alt="" />
                 </span>
               </div>
-              <div className="hero-sprite" aria-hidden="true" />
+              <div
+                className="hero-sprite"
+                aria-hidden="true"
+                style={{
+                  backgroundImage: `url(${BAT_SPRITES[dailyBatState.equippedBat]})`,
+                }}
+              />
               <span className="hero-spark spark-one">✦</span>
               <span className="hero-spark spark-two">✦</span>
             </div>
@@ -1272,7 +1275,7 @@ export default function Home() {
                 <br />
                 <em>냅다 휘둘러!</em>
               </h1>
-              <p>기회는 딱 10번. 하나쯤은 넘어가겠지!</p>
+              <p>기회는 딱 7번. 눈 깜빡하면 끝나버려!</p>
             </div>
             <form className="nickname-form" onSubmit={startGame}>
               <label htmlFor="nickname" className="sr-only">
@@ -1294,13 +1297,17 @@ export default function Home() {
             <section className="bat-collection" aria-label="오늘 모은 배트">
               <div className="bat-collection-head">
                 <strong>오늘 모은 배트</strong>
-                <span>{Math.min(5, dailyBatState.completedGames + 1)} / 5</span>
+                <span>
+                  {Math.min(5, dailyBatState.completedGames + 1)} / 5 ·{' '}
+                  {BAT_LABELS[dailyBatState.equippedBat]} 장착
+                </span>
               </div>
               <div className="bat-collection-list">
                 {BAT_COLLECTION.map(({ type, games }) => (
                   <div
-                    className={`bat-slot ${dailyBatState.completedGames >= games ? 'is-owned' : 'is-locked'}`}
+                    className={`bat-slot ${dailyBatState.completedGames >= games ? 'is-owned' : 'is-locked'} ${dailyBatState.equippedBat === type ? 'is-equipped' : ''}`}
                     key={type}
+                    aria-label={`${BAT_LABELS[type]} 배트${dailyBatState.equippedBat === type ? ', 장착 중' : ''}`}
                   >
                     <img
                       className={`bat-thumb ${type === 'basic' ? 'bat-thumb-basic' : ''}`}

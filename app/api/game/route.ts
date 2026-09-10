@@ -9,8 +9,14 @@ import { batProgress, playerIdentity } from '@/lib/player-session';
 import { funnelStatement } from '@/lib/analytics';
 import { validateNickname } from '@/lib/nickname-filter';
 import { ensureNicknameAlias } from '@/lib/nickname-alias';
+import {
+  CONTACT_PROGRESS,
+  PITCHES,
+  TOTAL_PITCHES,
+  WINDUP_MS,
+  type PitchType,
+} from '@/lib/game-config';
 
-type PitchType = '직구' | '커브' | '체인지업';
 type Outcome =
   | 'WHIFF'
   | 'FOUL'
@@ -44,16 +50,8 @@ type SessionRow = {
 };
 
 const SESSION_ID = /^[0-9a-f-]{36}$/i;
-const TOTAL_PITCHES = 10;
-const WINDUP_MS = 760;
-const CONTACT_PROGRESS = 0.86;
 const SWING_INPUT_TRANSIT_MS = 60;
 const MAX_REPORTED_SWING_DRIFT_MS = 250;
-const PITCHES: Array<{ type: PitchType; duration: number }> = [
-  { type: '직구', duration: 1650 },
-  { type: '커브', duration: 1900 },
-  { type: '체인지업', duration: 2150 },
-];
 
 function secureRandom() {
   const value = new Uint32Array(1);
@@ -340,7 +338,7 @@ export async function POST(request: Request) {
             nickname, score, home_runs, distance, played_at, session_id, player_id,
             misses, fouls, infield_hits, singles, doubles, triples, total_distance, max_combo
           ) SELECT nickname, score, home_runs, max_distance, completed_at, id, player_id,
-            MAX(0, 10 - (fouls + infield_hits + singles + doubles + triples + home_runs)),
+            MAX(0, ${TOTAL_PITCHES} - (fouls + infield_hits + singles + doubles + triples + home_runs)),
             fouls, infield_hits, singles, doubles, triples, total_distance, max_combo
             FROM game_sessions WHERE id = ? AND completed_at = ?`).bind(
               id,

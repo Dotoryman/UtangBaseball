@@ -38,10 +38,10 @@ test('historical distance is repaired from the best retained distance', () => {
   assert.match(migration, /SUM\(s\.total_distance\)/);
 });
 
-test('completed games derive whiffs from all ten canonical outcomes', () => {
+test('completed games derive whiffs from every configured pitch outcome', () => {
   assert.match(
     gameRoute,
-    /MAX\(0, 10 - \(fouls \+ infield_hits \+ singles \+ doubles \+ triples \+ home_runs\)\)/,
+    /MAX\(0, \$\{TOTAL_PITCHES\} - \(fouls \+ infield_hits \+ singles \+ doubles \+ triples \+ home_runs\)\)/,
   );
   assert.match(missRepairMigration, /0006_admin_operations\.sql/);
   assert.match(missRepairMigration, /AND score = 0/);
