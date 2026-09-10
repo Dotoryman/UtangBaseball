@@ -37,6 +37,11 @@ test('the seven-pitch counter does not add a leading zero', () => {
   assert.match(client, /\{pitchNumber\}[\s\S]*?\/ \{TOTAL_PITCHES\}/);
 });
 
+test('result rank survives server-side nickname aliases', () => {
+  assert.match(client, /records\.filter\(\(item\) => item\.score > score\)\.length \+ 1/);
+  assert.doesNotMatch(client, /item\.nickname === \(nickname\.trim\(\) \|\| '우땅이'\)/);
+});
+
 test('hit vibration is attached to the existing 78ms contact frame', () => {
   assert.match(client, /previewHaptic = true;\s+triggerHitHaptic\(nextContact\.outcome\);\s+setPitch\(null\);\s+setBallFlying\(true\)/);
   assert.match(client, /if \(!previewHaptic\)\s+triggerHitHaptic\(nextContact\.outcome\)/);

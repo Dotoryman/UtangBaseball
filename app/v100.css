@@ -72,21 +72,37 @@
 
 /* Hotfix: fuller countdown composition with two previously unused stickers. */
 .countdown-friend-left {
-  left: -15px;
-  top: 91px;
-  width: 104px;
-  height: 104px;
+  left: 22px;
+  top: 93px;
+  width: 76px;
+  height: 76px;
   transform: rotate(-8deg);
 }
 .countdown-friend-right {
-  right: -11px;
-  top: 97px;
-  width: 92px;
-  height: 104px;
+  right: 22px;
+  top: 94px;
+  width: 70px;
+  height: 80px;
+  transform: rotate(7deg);
+}
+.countdown-friend-wave {
+  left: 24px;
+  top: 220px;
+  width: 55px;
+  height: 55px;
+  transform: rotate(-8deg);
+}
+.countdown-friend-chill {
+  right: 23px;
+  top: 222px;
+  width: 63px;
+  height: 48px;
   transform: rotate(7deg);
 }
 .countdown-friend img { filter: drop-shadow(0 5px 5px rgb(93 52 30 / 15%)); }
 @media (max-height: 760px) {
-  .countdown-friend-left { top: 70px; width: 88px; height: 88px; }
-  .countdown-friend-right { top: 75px; width: 80px; height: 91px; }
+  .countdown-friend-left { left: 20px; top: 71px; width: 68px; height: 68px; }
+  .countdown-friend-right { right: 20px; top: 73px; width: 63px; height: 72px; }
+  .countdown-friend-wave { left: 22px; top: 184px; width: 48px; height: 48px; }
+  .countdown-friend-chill { right: 21px; top: 187px; width: 55px; height: 42px; }
 }

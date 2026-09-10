@@ -559,7 +559,7 @@ export default function Home() {
       '/utang-pose-miss-v093-gold.png',
       '/utang-pose-miss-v093-ruby.png',
       '/utang-pose-miss-v093-diamond.png',
-      '/utang-pitcher-v120-strip.png',
+      '/utang-pitcher-v122-strip.png',
       '/utang-umpire-v091-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
@@ -1064,12 +1064,10 @@ export default function Home() {
 
   const rank = useMemo(
     () =>
-      records.findIndex(
-        (item) =>
-          item.nickname === (nickname.trim() || '우땅이') &&
-          item.score === score,
-      ) + 1,
-    [nickname, records, score],
+      records.length
+        ? records.filter((item) => item.score > score).length + 1
+        : 0,
+    [records, score],
   );
   const rankingPageCount = Math.max(
     1,
@@ -1684,6 +1682,18 @@ export default function Home() {
                       aria-hidden="true"
                     >
                       <img src="/utang-sticker-ticket-v120.png" alt="" />
+                    </span>
+                    <span
+                      className="countdown-friend countdown-friend-wave"
+                      aria-hidden="true"
+                    >
+                      <img src="/utang-sticker-wave-v071.png" alt="" />
+                    </span>
+                    <span
+                      className="countdown-friend countdown-friend-chill"
+                      aria-hidden="true"
+                    >
+                      <img src="/utang-sticker-chill-v071.png" alt="" />
                     </span>
                     <div className="countdown-mascot">
                       <span
