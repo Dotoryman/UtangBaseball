@@ -3,7 +3,7 @@ import sharp from 'sharp';
 const frameSize = 512;
 const reactionSource = 'public/utang-pitcher-follow-authentic.png';
 const reactionOutput = 'public/utang-pitcher-follow-v3.png';
-const stripOutput = 'public/utang-pitcher-v111-strip.png';
+const stripOutput = 'public/utang-pitcher-v120-strip.png';
 
 // The original drawing intentionally left the uniform interior transparent.
 // Keep every original ink pixel and place a solid uniform layer underneath it.
@@ -17,6 +17,16 @@ const uniformUnderlay = Buffer.from(`
       C319 376 281 423 239 482
       L205 484
       C209 440 197 394 169 351
+      Z" fill="#fffdf7"/>
+    <path d="M166 339
+      C194 365 215 401 224 451
+      L238 488 L199 491
+      C199 444 188 394 158 351
+      Z" fill="#fffdf7"/>
+    <path d="M337 345
+      C377 350 423 369 475 378
+      L469 390
+      C418 386 380 371 340 364
       Z" fill="#fffdf7"/>
     <path d="M205 411
       C220 426 229 448 230 475
@@ -74,10 +84,13 @@ await sharp({
 
 const { data, info } = await sharp(reactionOutput).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 const opaqueSamples = [
+  [200, 395],
   [220, 430],
   [230, 455],
+  [211, 475],
   [350, 350],
   [400, 365],
+  [455, 380],
 ];
 for (const [x, y] of opaqueSamples) {
   const alpha = data[(y * info.width + x) * info.channels + 3];

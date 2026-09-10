@@ -23,7 +23,7 @@ function isBatFill(r, g, b, a) {
   return a > 48 && r > 174 && g > 137 && b > 88 && r >= g - 14 && g >= b - 22;
 }
 
-function largestFillComponent(data, width, height, box) {
+function batFillComponents(data, width, height, box) {
   const [left, top, right, bottom] = box;
   const mask = new Uint8Array(width * height);
   for (let y = top; y < Math.min(bottom, height); y += 1) {
@@ -32,7 +32,7 @@ function largestFillComponent(data, width, height, box) {
       if (isBatFill(data[offset], data[offset + 1], data[offset + 2], data[offset + 3])) mask[y * width + x] = 1;
     }
   }
-  let largest = [];
+  const components = [];
   for (let y = top; y < Math.min(bottom, height); y += 1) {
     for (let x = left; x < Math.min(right, width); x += 1) {
       const start = y * width + x;
@@ -55,16 +55,39 @@ function largestFillComponent(data, width, height, box) {
           }
         }
       }
-      if (component.length > largest.length) largest = component;
+      if (component.length >= 120) components.push(component);
     }
   }
-  if (largest.length < 120) throw new Error(`Could not isolate bat fill (${largest.length} pixels)`);
-  return largest;
+  components.sort((a, b) => b.length - a.length);
+  if (!components.length) throw new Error('Could not isolate bat fill');
+  return components;
 }
 
-async function recolorBat(source, output, box, palette) {
+async function recolorBat(source, output, box, palette, componentCount = 1, extraFillBox = null) {
   const { data, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const component = largestFillComponent(data, info.width, info.height, box);
+  // The hands split the ready-pose bat into two separate fill islands. Recolor
+  // both the barrel and the exposed grip so no wooden patch remains by the hand.
+  const component = batFillComponents(data, info.width, info.height, box)
+    .slice(0, componentCount)
+    .flat();
+  if (extraFillBox) {
+    const [left, top, right, bottom] = extraFillBox;
+    const selected = new Set(component);
+    for (let y = top; y < bottom; y += 1) {
+      for (let x = left; x < right; x += 1) {
+        const point = y * info.width + x;
+        const offset = point * 4;
+        const r = data[offset]; const g = data[offset + 1]; const b = data[offset + 2];
+        // Select warm wood pixels in the narrow grip wedge, excluding white
+        // gloves and skin even though all three are enclosed by the hands.
+        if (isBatFill(r, g, b, data[offset + 3]) && r - g > 7 && g - b > 7 && g > 185) {
+          selected.add(point);
+        }
+      }
+    }
+    component.length = 0;
+    component.push(...selected);
+  }
   let glossGeometry = null;
   if (palette.gloss) {
     let centerX = 0; let centerY = 0;
@@ -190,7 +213,14 @@ await Promise.all([
 for (const [variant, palette] of Object.entries(variants)) {
   const frameBuffers = [];
   for (const frame of frames) {
-    const frameBuffer = await recolorBat(`public/utang-batter-v8-${frame}.png`, frame === 'follow' ? `public/utang-batter-v8-${variant}-follow.png` : null, batBoxes[frame], palette);
+    const frameBuffer = await recolorBat(
+      `public/utang-batter-v8-${frame}.png`,
+      frame === 'follow' ? `public/utang-batter-v8-${variant}-follow.png` : null,
+      batBoxes[frame],
+      palette,
+      frame === 'ready' ? 2 : 1,
+      frame === 'ready' ? [205, 245, 290, 345] : null,
+    );
     frameBuffers.push(frameBuffer);
   }
   await recolorBat('public/utang-pose-miss-v071.png', `public/utang-pose-miss-v093-${variant}.png`, [0, 360, 310, 590], palette);

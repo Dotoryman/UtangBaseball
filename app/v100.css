@@ -69,3 +69,24 @@
 .bat-reward-card.reward-ruby button { background: #c92e4c; border-color: #8e1830; box-shadow: 0 5px 0 #8e1830; }
 .reward-aluminum .reward-spark { color: #8ca2b4; }
 .reward-ruby .reward-spark { color: #d5264a; }
+
+/* Hotfix: fuller countdown composition with two previously unused stickers. */
+.countdown-friend-left {
+  left: -15px;
+  top: 91px;
+  width: 104px;
+  height: 104px;
+  transform: rotate(-8deg);
+}
+.countdown-friend-right {
+  right: -11px;
+  top: 97px;
+  width: 92px;
+  height: 104px;
+  transform: rotate(7deg);
+}
+.countdown-friend img { filter: drop-shadow(0 5px 5px rgb(93 52 30 / 15%)); }
+@media (max-height: 760px) {
+  .countdown-friend-left { top: 70px; width: 88px; height: 88px; }
+  .countdown-friend-right { top: 75px; width: 80px; height: 91px; }
+}

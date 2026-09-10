@@ -559,7 +559,7 @@ export default function Home() {
       '/utang-pose-miss-v093-gold.png',
       '/utang-pose-miss-v093-ruby.png',
       '/utang-pose-miss-v093-diamond.png',
-      '/utang-pitcher-v090-strip.png',
+      '/utang-pitcher-v120-strip.png',
       '/utang-umpire-v091-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
@@ -1514,7 +1514,7 @@ export default function Home() {
                   ))}
                 </div>
                 <strong>
-                  {String(pitchNumber).padStart(2, '0')}
+                  {pitchNumber}
                   <span> / {TOTAL_PITCHES}</span>
                 </strong>
               </div>
@@ -1677,13 +1677,13 @@ export default function Home() {
                       className="countdown-friend countdown-friend-left"
                       aria-hidden="true"
                     >
-                      <img src="/utang-sticker-wave-v071.png" alt="" />
+                      <img src="/utang-sticker-heart-v120.png" alt="" />
                     </span>
                     <span
                       className="countdown-friend countdown-friend-right"
                       aria-hidden="true"
                     >
-                      <img src="/utang-sticker-chill-v071.png" alt="" />
+                      <img src="/utang-sticker-ticket-v120.png" alt="" />
                     </span>
                     <div className="countdown-mascot">
                       <span

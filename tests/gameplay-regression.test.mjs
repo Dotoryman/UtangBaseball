@@ -32,6 +32,11 @@ test('intro and result characters use the currently earned bat', () => {
   assert.match(client, /missPoseForBat\(resultBat\)/);
 });
 
+test('the seven-pitch counter does not add a leading zero', () => {
+  assert.doesNotMatch(client, /String\(pitchNumber\)\.padStart/);
+  assert.match(client, /\{pitchNumber\}[\s\S]*?\/ \{TOTAL_PITCHES\}/);
+});
+
 test('hit vibration is attached to the existing 78ms contact frame', () => {
   assert.match(client, /previewHaptic = true;\s+triggerHitHaptic\(nextContact\.outcome\);\s+setPitch\(null\);\s+setBallFlying\(true\)/);
   assert.match(client, /if \(!previewHaptic\)\s+triggerHitHaptic\(nextContact\.outcome\)/);
