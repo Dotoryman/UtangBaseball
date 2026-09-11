@@ -24,6 +24,8 @@
 
 배포가 끝나면 공식 서비스 주소와 새 정적 이미지의 응답 상태를 함께 확인합니다.
 
+검증이나 배포가 실패하면 GitHub Actions 실행 기록에서 실패 단계를 먼저 확인합니다.
+
 ## 도메인
 
 공식 서비스 주소는 `https://utangbaseball.cloud`이며 Cloudflare Workers 커스텀 도메인으로 연결되어 있습니다.
