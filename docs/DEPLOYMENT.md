@@ -20,6 +20,8 @@
 
 `v*` 태그를 GitHub에 푸시하거나 Actions에서 수동 실행하면 먼저 빌드를 검증합니다. 저장소에 `CLOUDFLARE_API_TOKEN`과 `CLOUDFLARE_ACCOUNT_ID` 시크릿이 설정되어 있으면 D1 마이그레이션과 Workers 배포까지 이어지고, 토큰이 없으면 안전하게 검증만 완료합니다.
 
+배포 전에 로컬에서도 `npm test`를 실행해 게임 진행과 저장 로직의 회귀 여부를 확인합니다.
+
 ## 도메인
 
 공식 서비스 주소는 `https://utangbaseball.cloud`이며 Cloudflare Workers 커스텀 도메인으로 연결되어 있습니다.
