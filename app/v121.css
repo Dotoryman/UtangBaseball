@@ -1,126 +1,69 @@
-/* v1.2.1: layered, text-free contact feedback inspired by arcade baseball. */
-.comic-contact-effect {
-  left: 23%;
-  bottom: 24%;
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  animation: impact-burst-v121 620ms cubic-bezier(.14, .76, .2, 1) both;
+/* Result feedback surrounds the batter; no circular badge, ring, or ball is used. */
+.batter-outcome-effect {
+  position: absolute;
+  z-index: 30;
+  left: 2.5%;
+  bottom: 0;
+  width: 43%;
+  height: 35%;
+  pointer-events: none;
+  overflow: visible;
 }
-.comic-contact-effect::before {
-  inset: 8px;
-  border-radius: 50%;
-  clip-path: none;
-  background: repeating-conic-gradient(from 8deg, #fff3a4 0 8deg, transparent 8deg 20deg);
-  filter: drop-shadow(0 2px 1px rgb(77 39 20 / 24%));
-  animation: impact-spin-v121 620ms ease-out both;
+.batter-firework { --burst-scale: .72; position: absolute; display: none; width: 1px; height: 1px; filter: drop-shadow(0 2px 2px rgb(69 30 16 / 26%)); }
+.batter-firework i {
+  --firework-angle: 0deg;
+  --firework-delay: 0ms;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 25px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(to bottom, #fffbd1 0 22%, #ffd43f 23% 58%, #ff6c38 59% 78%, transparent 79%);
+  transform-origin: 2px 1px;
+  animation: batter-firework-ray 780ms var(--firework-delay) cubic-bezier(.12,.68,.2,1) both;
 }
-.comic-contact-effect::after {
-  inset: 34px;
-  border: 0;
-  border-radius: 0;
-  clip-path: polygon(50% 0, 61% 34%, 88% 12%, 69% 40%, 100% 50%, 69% 60%, 88% 88%, 61% 66%, 50% 100%, 39% 66%, 12% 88%, 31% 60%, 0 50%, 31% 40%, 12% 12%, 39% 34%);
-  background: #fff9bd;
-  box-shadow: none;
-}
-.comic-contact-effect .impact-firework-core {
-  position: relative;
-  z-index: 2;
-  width: 14px;
-  height: 14px;
-  display: block;
-  border: 0;
-  border-radius: 50%;
-  background: #fffce2;
-  box-shadow: 0 -25px 0 -3px #ffd947, 21px -13px 0 -3px #ff7042, 24px 11px 0 -3px #fff1a3, 10px 25px 0 -3px #f28d35, -12px 23px 0 -3px #ffe054, -25px 8px 0 -3px #ff6f45, -21px -15px 0 -3px #fff2a4, 0 0 9px #fff5a8, 0 0 18px rgb(255 142 43 / 68%);
-  transform: rotate(-9deg);
-}
-.comic-contact-effect .impact-firework-core::before,
-.comic-contact-effect .impact-firework-core::after {
+.batter-firework i:nth-child(3n + 2) { background: linear-gradient(to bottom, #fff 0 20%, #7fe3ff 21% 55%, #4d79ff 56% 76%, transparent 77%); }
+.batter-firework i:nth-child(3n) { background: linear-gradient(to bottom, #fff4c7 0 18%, #ff7190 19% 55%, #c63f79 56% 76%, transparent 77%); }
+.burst-1 { left: 17%; top: 18%; }
+.burst-2 { right: 15%; top: 30%; --burst-scale: .8; }
+.burst-3 { left: 12%; bottom: 23%; --burst-scale: .9; }
+.burst-4 { right: 12%; bottom: 14%; --burst-scale: 1; }
+.burst-5 { left: 52%; top: 4%; --burst-scale: 1.08; }
+
+.effect-infield .burst-1 { display: block; }
+.effect-single .burst-1, .effect-single .burst-2 { display: block; }
+.effect-double .burst-1, .effect-double .burst-2, .effect-double .burst-3 { display: block; }
+.effect-triple .burst-1, .effect-triple .burst-2, .effect-triple .burst-3, .effect-triple .burst-4 { display: block; }
+.effect-homer .batter-firework { display: block; }
+.effect-infield { transform: scale(.72); transform-origin: 48% 62%; }
+.effect-single { transform: scale(.82); transform-origin: 48% 62%; }
+.effect-double { transform: scale(.9); transform-origin: 48% 62%; }
+.effect-triple { transform: scale(1); transform-origin: 48% 62%; }
+.effect-homer { left: 0; bottom: 0; width: 48%; height: 40%; transform: scale(1.12); transform-origin: 48% 72%; }
+.effect-homer .batter-firework i { width: 6px; height: 32px; animation-duration: 940ms; }
+.batter-result-homer::after { display: none; }
+
+.outcome-gloom { display: none; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 66%, rgb(25 29 42 / 38%) 0, rgb(38 40 53 / 23%) 42%, transparent 72%); animation: outcome-gloom 980ms ease-out both; }
+.outcome-gloom::before {
   content: '';
   position: absolute;
-  inset: -12px 5px;
-  border-radius: 999px;
-  background: #fffbe1;
-  box-shadow: 0 0 6px #ffd452;
+  z-index: 2;
+  left: 20%;
+  top: 3%;
+  width: 62%;
+  height: 24%;
+  background: linear-gradient(165deg, #687083 0 34%, #363b4d 62%, #242939 100%);
+  clip-path: polygon(2% 61%, 10% 35%, 24% 32%, 31% 11%, 48% 3%, 61% 18%, 72% 10%, 88% 25%, 98% 52%, 93% 77%, 74% 84%, 61% 76%, 44% 91%, 28% 78%, 11% 83%);
+  filter: drop-shadow(0 5px 3px rgb(18 20 30 / 35%));
 }
-.comic-contact-effect .impact-firework-core::after { transform: rotate(90deg); background: #ff8a45; }
-.comic-contact-effect .impact-ring {
-  position: absolute;
-  z-index: 1;
-  inset: 13px;
-  border: 3px solid rgb(255 255 231 / 92%);
-  border-radius: 50%;
-  animation: impact-ring-v121 520ms ease-out both;
-}
-.comic-contact-effect > i {
-  --impact-ray: 0deg;
-  position: absolute;
-  z-index: 3;
-  left: calc(50% - 3px);
-  top: 50%;
-  display: block;
-  width: 6px;
-  height: 25px;
-  border-radius: 999px;
-  background: #fff8be;
-  box-shadow: 0 0 0 1px rgb(102 49 27 / 42%);
-  transform-origin: 3px 0;
-  transform: rotate(var(--impact-ray)) translateY(-53px) scaleY(.75);
-}
-.comic-contact-effect > i:nth-of-type(2n) { height: 16px; background: #ef7039; transform: rotate(var(--impact-ray)) translateY(-48px) scaleY(.75); }
-.comic-foul::after { background: #e4f8ff; }
-.comic-foul::before { background: repeating-conic-gradient(from 8deg, #dff7ff 0 8deg, transparent 8deg 20deg); }
-.comic-extra { width: 104px; height: 104px; }
-.comic-extra::after { inset: 38px; background: #fff4a0; }
-.comic-homer {
-  left: 17%;
-  bottom: 20%;
-  width: 128px;
-  height: 128px;
-  filter: drop-shadow(0 6px 3px rgb(75 24 17 / 28%));
-}
-.comic-homer::before { inset: 0; background: repeating-conic-gradient(from 5deg, #fff6a8 0 7deg, transparent 7deg 15deg, #ff7a3d 15deg 20deg, transparent 20deg 30deg); }
-.comic-homer::after { inset: 49px; border: 0; background: #fff8b0; box-shadow: none; }
-.comic-homer .impact-firework-core {
-  width: 18px;
-  height: 18px;
-  background: #fffde3;
-  box-shadow: 0 -35px 0 -3px #ffe05a, 29px -18px 0 -3px #ff633f, 34px 14px 0 -3px #fff0a1, 14px 34px 0 -3px #f34a42, -17px 31px 0 -3px #ffe14e, -35px 11px 0 -3px #ff6742, -29px -21px 0 -3px #fff2a4, 0 0 14px #fff5a8, 0 0 29px #ff8535;
-}
-.comic-homer .impact-firework-core::before,
-.comic-homer .impact-firework-core::after { inset: -15px 7px; }
-.comic-homer .impact-ring { inset: 16px; border-width: 4px; }
-.comic-homer > i { height: 34px; transform: rotate(var(--impact-ray)) translateY(-72px); background: #ffe75a; }
-.comic-homer > i:nth-of-type(2n) { height: 23px; transform: rotate(var(--impact-ray)) translateY(-64px); background: #ff553c; }
-
-/* A small, graphic energy crest replaces the old !! speech bubble. */
-.batter-impact-bubble {
-  z-index: 29;
-  left: 17%;
-  bottom: 20%;
-  width: 128px;
-  height: 128px;
-  border: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle, transparent 0 46%, rgb(255 249 189 / 96%) 47% 50%, rgb(255 102 53 / 88%) 51% 54%, transparent 55%);
-  box-shadow: none;
-  transform: rotate(-8deg);
-  filter: drop-shadow(0 4px 3px rgb(77 33 19 / 28%));
-  animation: homer-crest-v121 720ms cubic-bezier(.16, .8, .22, 1) both;
-}
-.batter-impact-bubble::after { display: none; }
-.batter-impact-bubble b {
-  position: absolute;
-  inset: 7px;
-  border: 5px dashed rgb(255 224 82 / 88%);
-  border-radius: 50%;
-  background: transparent;
-}
-.batter-impact-bubble i { position: absolute; z-index: 2; width: 9px; height: 32px; border-radius: 5px; background: #fff6ad; transform: rotate(35deg) skewY(-18deg); }
-.batter-impact-bubble i:nth-of-type(1) { left: 2px; top: 13px; }
-.batter-impact-bubble i:nth-of-type(2) { right: 1px; top: 31px; transform: rotate(-45deg) skewY(18deg); background: #ff7040; }
-.batter-impact-bubble i:nth-of-type(3) { left: 59px; bottom: -12px; transform: rotate(8deg); height: 28px; }
+.outcome-gloom::after { content: ''; position: absolute; z-index: 3; left: 45%; top: 21%; width: 15%; height: 20%; background: #bac2d2; clip-path: polygon(45% 0, 100% 0, 61% 42%, 91% 42%, 15% 100%, 38% 54%, 0 54%); opacity: .66; }
+.outcome-gloom i { position: absolute; z-index: 1; top: 23%; width: 3px; height: 28px; border-radius: 0 0 3px 3px; background: linear-gradient(transparent, #66738e 25%, #313747); transform: rotate(15deg); animation: gloom-fall 760ms ease-in both; }
+.outcome-gloom i:nth-child(1) { left: 19%; animation-delay: 30ms; }.outcome-gloom i:nth-child(2) { left: 28%; top: 30%; animation-delay: 100ms; }.outcome-gloom i:nth-child(3) { left: 37%; top: 25%; animation-delay: 10ms; }.outcome-gloom i:nth-child(4) { left: 46%; top: 34%; animation-delay: 140ms; }.outcome-gloom i:nth-child(5) { left: 55%; top: 27%; animation-delay: 60ms; }.outcome-gloom i:nth-child(6) { left: 64%; top: 33%; animation-delay: 120ms; }.outcome-gloom i:nth-child(7) { left: 73%; top: 24%; animation-delay: 40ms; }.outcome-gloom i:nth-child(8) { left: 82%; top: 31%; animation-delay: 160ms; }.outcome-gloom i:nth-child(9) { left: 88%; top: 39%; animation-delay: 80ms; }
+.effect-foul .outcome-gloom, .effect-miss .outcome-gloom { display: block; }
+.effect-foul .outcome-gloom { opacity: .68; filter: saturate(.6); animation-duration: 760ms; }
+.effect-foul .outcome-gloom::after { display: none; }
+.effect-miss .outcome-gloom { filter: saturate(.45) brightness(.82); }
 
 /* Fireworks stay over the stands; confetti falls into the upper outfield. */
 .stadium-celebration { position: absolute; z-index: 6; inset: 8% 0 38%; overflow: hidden; pointer-events: none; }
@@ -157,21 +100,21 @@
 .stadium-confetti i:nth-child(4n + 3) { background: #65d8e8; }
 .stadium-confetti i:nth-child(4n) { width: 10px; height: 6px; background: #f7f0c0; }
 
-@keyframes impact-burst-v121 { 0% { opacity: 0; transform: scale(.18) rotate(-22deg); } 32% { opacity: 1; transform: scale(1.18) rotate(4deg); } 72% { opacity: 1; transform: scale(.98); } 100% { opacity: 0; transform: scale(1.12) translateY(-8px); } }
-@keyframes impact-spin-v121 { from { transform: rotate(-24deg) scale(.4); } to { transform: rotate(14deg) scale(1); } }
-@keyframes impact-ring-v121 { from { opacity: 1; transform: scale(.25); } to { opacity: 0; transform: scale(1.65); } }
-@keyframes homer-crest-v121 { 0% { opacity: 0; transform: scale(.15) rotate(-30deg); } 34% { opacity: 1; transform: scale(1.22) rotate(8deg); } 76% { opacity: 1; transform: scale(.96) rotate(-6deg); } 100% { opacity: 0; transform: scale(1.28) rotate(10deg); } }
+@keyframes batter-firework-ray { 0% { opacity: 0; transform: rotate(var(--firework-angle)) translateY(-4px) scaleY(0) scale(var(--burst-scale)); } 15% { opacity: 1; } 58% { opacity: 1; transform: rotate(var(--firework-angle)) translateY(-27px) scaleY(1) scale(var(--burst-scale)); } 100% { opacity: 0; transform: rotate(var(--firework-angle)) translateY(-43px) scaleY(.25) scale(var(--burst-scale)); } }
+@keyframes outcome-gloom { 0% { opacity: 0; transform: translateY(-10px) scale(.9); } 22%, 72% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(8px) scale(1.02); } }
+@keyframes gloom-fall { 0% { opacity: 0; transform: translateY(-12px) rotate(18deg); } 25%, 70% { opacity: .9; } 100% { opacity: 0; transform: translateY(38px) rotate(18deg); } }
 @keyframes firework-core-v121 { 0%, 12% { filter: brightness(1); } 35% { filter: brightness(1.8) drop-shadow(0 0 8px white); } 100% { filter: brightness(.9); } }
 @keyframes firework-ray-v121 { 0% { opacity: 0; transform: rotate(var(--firework-ray)) translateY(-5px) scaleY(0); } 18% { opacity: 1; } 58% { opacity: 1; transform: rotate(var(--firework-ray)) translateY(-28px) scaleY(1); } 100% { opacity: 0; transform: rotate(var(--firework-ray)) translateY(-39px) scaleY(.45); } }
 @keyframes confetti-fall-v121 { 0% { opacity: 0; transform: translate(0, -8px) rotate(0); } 14% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--confetti-drift), 230px) rotate(470deg); } }
 
 @media (max-width: 380px) {
-  .comic-contact-effect { left: 21%; bottom: 22%; transform: scale(.88); }
-  .comic-homer { left: 14%; bottom: 19%; }
-  .batter-impact-bubble { left: 14%; bottom: 19%; transform: scale(.88) rotate(-8deg); }
+  .batter-outcome-effect { left: 1%; bottom: 0; width: 46%; height: 34%; }
+  .effect-homer { left: -1%; width: 51%; height: 39%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .comic-contact-effect, .batter-impact-bubble, .stadium-firework, .stadium-firework i, .stadium-confetti i { animation: none; }
+  .batter-firework i, .outcome-gloom, .outcome-gloom i, .stadium-firework, .stadium-firework i, .stadium-confetti i { animation: none; }
+  .batter-firework i { opacity: .75; transform: rotate(var(--firework-angle)) translateY(-28px) scaleY(.72) scale(var(--burst-scale)); }
+  .outcome-gloom { opacity: .68; }
   .stadium-confetti { display: none; }
   .stadium-firework i { opacity: .8; transform: rotate(var(--firework-ray)) translateY(-25px) scaleY(.75); }
 }
