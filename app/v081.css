@@ -61,7 +61,7 @@
 .pitcher-reaction { animation: pitcher-follow-through .35s ease-out both; }
 .umpire { position: absolute; z-index: 12; right: 1%; bottom: 5%; width: 130px; height: 156px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 2px rgb(30 24 14 / 20%)); }
 @media (max-width: 380px) { .umpire { width: 108px; height: 136px; right: 0; } }
-.umpire-sprite { position: absolute; inset: 0; background: url('/utang-umpire-v091-strip.png') no-repeat; background-size: 300% 100%; pointer-events: none; }
+.umpire-sprite { position: absolute; inset: 0; background: url('/utang-umpire-v121-strip.png') no-repeat; background-size: 300% 100%; pointer-events: none; }
 .umpire { height: 130px; }
 @media (max-width: 380px) { .umpire { height: 108px; } }
 
