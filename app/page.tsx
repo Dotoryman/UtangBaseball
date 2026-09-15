@@ -193,6 +193,15 @@ const RESULT_META: Record<
     tier: 'homer',
   },
 };
+const OUTCOME_EFFECT_TIER: Record<Outcome, string> = {
+  WHIFF: 'miss',
+  FOUL: 'foul',
+  INFIELD_HIT: 'infield',
+  SINGLE: 'single',
+  DOUBLE: 'double',
+  TRIPLE: 'triple',
+  HOME_RUN: 'homer',
+};
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -1616,31 +1625,29 @@ export default function Home() {
                 />
               </div>
               {umpire}
-              {contact && contact.outcome !== 'WHIFF' && (
+              {contact && (
                 <span
-                  className={`comic-contact-effect comic-${RESULT_META[contact.outcome].tier}`}
+                  className={`batter-outcome-effect effect-${OUTCOME_EFFECT_TIER[contact.outcome]}`}
                   aria-hidden="true"
                 >
-                  <b className="impact-firework-core" />
-                  <span className="impact-ring" />
-                  {Array.from({ length: 8 }, (_, index) => (
-                    <i
-                      key={index}
-                      style={
-                        {
-                          '--impact-ray': `${index * 45}deg`,
-                        } as React.CSSProperties
-                      }
-                    />
+                  {Array.from({ length: 5 }, (_, burstIndex) => (
+                    <span className={`batter-firework burst-${burstIndex + 1}`} key={burstIndex}>
+                      {Array.from({ length: 10 }, (_, rayIndex) => (
+                        <i
+                          key={rayIndex}
+                          style={
+                            {
+                              '--firework-angle': `${rayIndex * 36}deg`,
+                              '--firework-delay': `${burstIndex * 45 + rayIndex * 8}ms`,
+                            } as React.CSSProperties
+                          }
+                        />
+                      ))}
+                    </span>
                   ))}
-                </span>
-              )}
-              {contact?.outcome === 'HOME_RUN' && (
-                <span className="batter-impact-bubble" aria-hidden="true">
-                  <b />
-                  <i />
-                  <i />
-                  <i />
+                  <span className="outcome-gloom">
+                    {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
+                  </span>
                 </span>
               )}
               {!contact && (
