@@ -94,7 +94,7 @@ type StartResponse = {
   dayStart?: number;
 };
 
-const APP_VERSION = 'v1.2.0';
+const APP_VERSION = 'v1.2.1';
 const BATTER_FRAMES = [
   'ready',
   'load',
@@ -1549,6 +1549,42 @@ export default function Home() {
                 alt="다양한 우땅이 관중들이 응원하는 야구장"
                 className="stadium-background"
               />
+              {contact?.outcome === 'HOME_RUN' && (
+                <span className="stadium-celebration" aria-hidden="true">
+                  {['left', 'center', 'right'].map((position) => (
+                    <span
+                      className={`stadium-firework stadium-firework-${position}`}
+                      key={position}
+                    >
+                      {Array.from({ length: 12 }, (_, index) => (
+                        <i
+                          key={index}
+                          style={
+                            {
+                              '--firework-ray': `${index * 30}deg`,
+                            } as React.CSSProperties
+                          }
+                        />
+                      ))}
+                    </span>
+                  ))}
+                  <span className="stadium-confetti">
+                    {Array.from({ length: 30 }, (_, index) => (
+                      <i
+                        key={index}
+                        style={
+                          {
+                            left: `${4 + ((index * 37) % 92)}%`,
+                            animationDelay: `${(index % 10) * 42}ms`,
+                            animationDuration: `${820 + (index % 5) * 105}ms`,
+                            '--confetti-drift': `${(index % 2 ? 1 : -1) * (14 + (index % 4) * 8)}px`,
+                          } as React.CSSProperties
+                        }
+                      />
+                    ))}
+                  </span>
+                </span>
+              )}
               <span className="sr-only">투수 우땅이</span>
               <div
                 aria-hidden="true"
@@ -1585,22 +1621,28 @@ export default function Home() {
                   className={`comic-contact-effect comic-${RESULT_META[contact.outcome].tier}`}
                   aria-hidden="true"
                 >
-                  <b>
-                    {contact.outcome === 'HOME_RUN'
-                      ? '쾅!'
-                      : contact.outcome === 'FOUL'
-                        ? '탁!'
-                        : '딱!'}
+                  <b className="impact-ball">
+                    <img src="/baseball-official-cutout.png" alt="" />
                   </b>
-                  <i />
-                  <i />
-                  <i />
-                  <i />
+                  <span className="impact-ring" />
+                  {Array.from({ length: 8 }, (_, index) => (
+                    <i
+                      key={index}
+                      style={
+                        {
+                          '--impact-ray': `${index * 45}deg`,
+                        } as React.CSSProperties
+                      }
+                    />
+                  ))}
                 </span>
               )}
               {contact?.outcome === 'HOME_RUN' && (
                 <span className="batter-impact-bubble" aria-hidden="true">
-                  !!
+                  <b />
+                  <i />
+                  <i />
+                  <i />
                 </span>
               )}
               {!contact && (

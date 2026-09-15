@@ -1,0 +1,161 @@
+/* v1.2.1: layered, text-free contact feedback inspired by arcade baseball. */
+.comic-contact-effect {
+  left: 23%;
+  bottom: 24%;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  animation: impact-burst-v121 620ms cubic-bezier(.14, .76, .2, 1) both;
+}
+.comic-contact-effect::before {
+  inset: 8px;
+  border-radius: 50%;
+  clip-path: none;
+  background: repeating-conic-gradient(from 8deg, #fff3a4 0 8deg, transparent 8deg 20deg);
+  filter: drop-shadow(0 2px 1px rgb(77 39 20 / 24%));
+  animation: impact-spin-v121 620ms ease-out both;
+}
+.comic-contact-effect::after {
+  inset: 19px;
+  border: 4px solid #7a3f28;
+  border-radius: 50%;
+  clip-path: none;
+  background: radial-gradient(circle, #fffbe8 0 30%, #ffd461 32% 53%, #ee7437 55% 67%, transparent 69%);
+  box-shadow: 0 0 0 4px rgb(255 244 181 / 72%);
+}
+.comic-contact-effect .impact-ball {
+  position: relative;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: block;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  transform: rotate(-18deg);
+}
+.comic-contact-effect .impact-ball img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(1px 2px 0 rgb(103 45 24 / 34%)); }
+.comic-contact-effect .impact-ring {
+  position: absolute;
+  z-index: 1;
+  inset: 13px;
+  border: 3px solid rgb(255 255 231 / 92%);
+  border-radius: 50%;
+  animation: impact-ring-v121 520ms ease-out both;
+}
+.comic-contact-effect > i {
+  --impact-ray: 0deg;
+  position: absolute;
+  z-index: 3;
+  left: calc(50% - 3px);
+  top: 50%;
+  display: block;
+  width: 6px;
+  height: 25px;
+  border-radius: 999px;
+  background: #fff8be;
+  box-shadow: 0 0 0 1px rgb(102 49 27 / 42%);
+  transform-origin: 3px 0;
+  transform: rotate(var(--impact-ray)) translateY(-53px) scaleY(.75);
+}
+.comic-contact-effect > i:nth-of-type(2n) { height: 16px; background: #ef7039; transform: rotate(var(--impact-ray)) translateY(-48px) scaleY(.75); }
+.comic-foul::after { border-color: #315f7a; background: radial-gradient(circle, #f5fdff 0 32%, #9edfff 34% 55%, #4c9ecb 57% 68%, transparent 70%); }
+.comic-foul::before { background: repeating-conic-gradient(from 8deg, #dff7ff 0 8deg, transparent 8deg 20deg); }
+.comic-extra { width: 104px; height: 104px; }
+.comic-extra::after { border-color: #315aa0; background: radial-gradient(circle, #fffdf0 0 28%, #ffe06a 30% 50%, #3980da 53% 68%, transparent 70%); }
+.comic-homer {
+  left: 17%;
+  bottom: 20%;
+  width: 128px;
+  height: 128px;
+  filter: drop-shadow(0 6px 3px rgb(75 24 17 / 28%));
+}
+.comic-homer::before { inset: 0; background: repeating-conic-gradient(from 5deg, #fff6a8 0 7deg, transparent 7deg 15deg, #ff7a3d 15deg 20deg, transparent 20deg 30deg); }
+.comic-homer::after { inset: 25px; border: 5px solid #8b2430; background: radial-gradient(circle, #fff 0 24%, #ffde58 26% 48%, #ed3d35 51% 67%, transparent 69%); box-shadow: 0 0 0 6px rgb(255 213 79 / 64%), 0 0 24px #ff9e35; }
+.comic-homer .impact-ball { width: 43px; height: 43px; }
+.comic-homer .impact-ring { inset: 16px; border-width: 4px; }
+.comic-homer > i { height: 34px; transform: rotate(var(--impact-ray)) translateY(-72px); background: #ffe75a; }
+.comic-homer > i:nth-of-type(2n) { height: 23px; transform: rotate(var(--impact-ray)) translateY(-64px); background: #ff553c; }
+
+/* A small, graphic energy crest replaces the old !! speech bubble. */
+.batter-impact-bubble {
+  z-index: 29;
+  left: 17%;
+  bottom: 20%;
+  width: 128px;
+  height: 128px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 0 46%, rgb(255 249 189 / 96%) 47% 50%, rgb(255 102 53 / 88%) 51% 54%, transparent 55%);
+  box-shadow: none;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 4px 3px rgb(77 33 19 / 28%));
+  animation: homer-crest-v121 720ms cubic-bezier(.16, .8, .22, 1) both;
+}
+.batter-impact-bubble::after { display: none; }
+.batter-impact-bubble b {
+  position: absolute;
+  inset: 7px;
+  border: 5px dashed rgb(255 224 82 / 88%);
+  border-radius: 50%;
+  background: transparent;
+}
+.batter-impact-bubble i { position: absolute; z-index: 2; width: 9px; height: 32px; border-radius: 5px; background: #fff6ad; transform: rotate(35deg) skewY(-18deg); }
+.batter-impact-bubble i:nth-of-type(1) { left: 2px; top: 13px; }
+.batter-impact-bubble i:nth-of-type(2) { right: 1px; top: 31px; transform: rotate(-45deg) skewY(18deg); background: #ff7040; }
+.batter-impact-bubble i:nth-of-type(3) { left: 59px; bottom: -12px; transform: rotate(8deg); height: 28px; }
+
+/* Fireworks stay over the stands; confetti falls into the upper outfield. */
+.stadium-celebration { position: absolute; z-index: 6; inset: 8% 0 38%; overflow: hidden; pointer-events: none; }
+.stadium-firework { position: absolute; width: 8px; height: 8px; top: 21%; left: 20%; animation: firework-core-v121 1.25s ease-out both; }
+.stadium-firework-center { left: 50%; top: 12%; animation-delay: 100ms; }
+.stadium-firework-right { left: 81%; top: 24%; animation-delay: 210ms; }
+.stadium-firework i {
+  --firework-ray: 0deg;
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 4px;
+  height: 27px;
+  border-radius: 4px;
+  background: linear-gradient(#fff8b0, #ffb32f 50%, transparent);
+  transform-origin: 2px 2px;
+  transform: rotate(var(--firework-ray)) translateY(-7px) scaleY(0);
+  animation: firework-ray-v121 900ms cubic-bezier(.13, .64, .24, 1) forwards;
+}
+.stadium-firework-center i { background: linear-gradient(#fff, #75d9ff 45%, #5b7cff 72%, transparent); animation-delay: 100ms; }
+.stadium-firework-right i { background: linear-gradient(#fff5af, #ff6c88 48%, #d44272 72%, transparent); animation-delay: 210ms; }
+.stadium-confetti { position: absolute; inset: 0; }
+.stadium-confetti i {
+  --confetti-drift: 20px;
+  position: absolute;
+  top: -12%;
+  width: 7px;
+  height: 13px;
+  border-radius: 2px;
+  background: #ffd743;
+  animation: confetti-fall-v121 950ms cubic-bezier(.18, .55, .35, 1) both;
+}
+.stadium-confetti i:nth-child(4n + 2) { width: 6px; height: 9px; background: #ff6d58; }
+.stadium-confetti i:nth-child(4n + 3) { background: #65d8e8; }
+.stadium-confetti i:nth-child(4n) { width: 10px; height: 6px; background: #f7f0c0; }
+
+@keyframes impact-burst-v121 { 0% { opacity: 0; transform: scale(.18) rotate(-22deg); } 32% { opacity: 1; transform: scale(1.18) rotate(4deg); } 72% { opacity: 1; transform: scale(.98); } 100% { opacity: 0; transform: scale(1.12) translateY(-8px); } }
+@keyframes impact-spin-v121 { from { transform: rotate(-24deg) scale(.4); } to { transform: rotate(14deg) scale(1); } }
+@keyframes impact-ring-v121 { from { opacity: 1; transform: scale(.25); } to { opacity: 0; transform: scale(1.65); } }
+@keyframes homer-crest-v121 { 0% { opacity: 0; transform: scale(.15) rotate(-30deg); } 34% { opacity: 1; transform: scale(1.22) rotate(8deg); } 76% { opacity: 1; transform: scale(.96) rotate(-6deg); } 100% { opacity: 0; transform: scale(1.28) rotate(10deg); } }
+@keyframes firework-core-v121 { 0%, 12% { filter: brightness(1); } 35% { filter: brightness(1.8) drop-shadow(0 0 8px white); } 100% { filter: brightness(.9); } }
+@keyframes firework-ray-v121 { 0% { opacity: 0; transform: rotate(var(--firework-ray)) translateY(-5px) scaleY(0); } 18% { opacity: 1; } 58% { opacity: 1; transform: rotate(var(--firework-ray)) translateY(-28px) scaleY(1); } 100% { opacity: 0; transform: rotate(var(--firework-ray)) translateY(-39px) scaleY(.45); } }
+@keyframes confetti-fall-v121 { 0% { opacity: 0; transform: translate(0, -8px) rotate(0); } 14% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--confetti-drift), 230px) rotate(470deg); } }
+
+@media (max-width: 380px) {
+  .comic-contact-effect { left: 21%; bottom: 22%; transform: scale(.88); }
+  .comic-homer { left: 14%; bottom: 19%; }
+  .batter-impact-bubble { left: 14%; bottom: 19%; transform: scale(.88) rotate(-8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comic-contact-effect, .batter-impact-bubble, .stadium-firework, .stadium-firework i, .stadium-confetti i { animation: none; }
+  .stadium-confetti { display: none; }
+  .stadium-firework i { opacity: .8; transform: rotate(var(--firework-ray)) translateY(-25px) scaleY(.75); }
+}
