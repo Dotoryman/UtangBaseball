@@ -4,6 +4,7 @@ import './v080.css';
 import './v081.css';
 import './playful-ui.css';
 import './v100.css';
+import './v121.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://utangbaseball.cloud'),
