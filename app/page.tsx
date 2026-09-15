@@ -140,7 +140,7 @@ const RESULT_META: Record<
   Outcome,
   { label: string; pose: string; tier: string }
 > = {
-  WHIFF: { label: '에구구!', pose: '/utang-pose-miss-v071.png', tier: 'miss' },
+  WHIFF: { label: '에구구!', pose: '/utang-pose-miss-v121.png', tier: 'miss' },
   FOUL: {
     label: '파울!',
     pose: '/utang-pose-foul-authentic.png',
@@ -283,7 +283,7 @@ function saveDailyBatState(state: DailyBatState) {
   }
 }
 function missPoseForBat(bat: BatType) {
-  return bat === 'basic' ? RESULT_META.WHIFF.pose : `/utang-pose-miss-v093-${bat}.png`;
+  return bat === 'basic' ? RESULT_META.WHIFF.pose : `/utang-pose-miss-v121-${bat}.png`;
 }
 function followPoseForBat(bat: BatType) {
   return bat === 'basic' ? RESULT_META.HOME_RUN.pose : `/utang-batter-v8-${bat}-follow.png`;
@@ -555,19 +555,19 @@ export default function Home() {
       '/utang-bat-gold-v093.png',
       '/utang-bat-ruby-v113.png',
       '/utang-bat-diamond-v093.png',
-      '/utang-pose-miss-v093-aluminum.png',
-      '/utang-pose-miss-v093-gold.png',
-      '/utang-pose-miss-v093-ruby.png',
-      '/utang-pose-miss-v093-diamond.png',
+      '/utang-pose-miss-v121-aluminum.png',
+      '/utang-pose-miss-v121-gold.png',
+      '/utang-pose-miss-v121-ruby.png',
+      '/utang-pose-miss-v121-diamond.png',
       '/utang-pitcher-v122-strip.png',
-      '/utang-umpire-v091-strip.png',
+      '/utang-umpire-v121-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
       '/utang-pose-good-authentic.png',
-      '/utang-pose-miss-v071.png',
+      '/utang-pose-miss-v121.png',
       '/utang-pose-foul-authentic.png',
       '/baseball-official-cutout.png',
-      '/utang-stadium-v5.webp',
+      '/utang-stadium-v121.webp',
     ];
     characterAssets.forEach((src) => {
       const image = new Image();
@@ -1519,7 +1519,7 @@ export default function Home() {
             </div>
             <div className="stadium">
               <img
-                src="/utang-stadium-v5.webp"
+                src="/utang-stadium-v121.webp"
                 alt="다양한 우땅이 관중들이 응원하는 야구장"
                 className="stadium-background"
               />
