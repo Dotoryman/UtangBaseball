@@ -30,6 +30,9 @@ test('intro and result characters use the currently earned bat', () => {
   assert.match(client, /const resultBat = dailyBatState\.equippedBat/);
   assert.match(client, /followPoseForBat\(resultBat\)/);
   assert.match(client, /missPoseForBat\(resultBat\)/);
+  assert.match(client, /preloadBatVisuals\(completion\.state\.equippedBat\)/);
+  assert.match(client, /setActiveBat\(completion\.state\.equippedBat\)/);
+  assert.match(client, /await preloadBatVisuals\(nextBat\)[\s\S]*?setScreen\('playing'\)/);
 });
 
 test('the seven-pitch counter does not add a leading zero', () => {

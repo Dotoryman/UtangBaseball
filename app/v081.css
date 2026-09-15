@@ -56,7 +56,7 @@
 @media (max-width: 370px) { .game-hud { gap: 8px; grid-template-columns: 38px minmax(0,1fr) 56px 59px; padding-inline: 10px; } .hud-score strong,.hud-pitches > span > strong,.combo strong { font-size: 21px; } .hud-home { left: 18px; } }
 @media (prefers-reduced-motion: reduce) { .batter-impact-bubble { animation: none; } }
 /* v0.9 local character review: one decoded texture, no opacity transitions. */
-.pitcher-sprite { background-image: url('/utang-pitcher-v122-strip.png'); background-size: 300% 100%; }
+.pitcher-sprite { background-image: url('/utang-pitcher-v124-strip.png'); background-size: 300% 100%; }
 .pitcher-reaction .pitcher-sprite { background-position: 50% 0 !important; }
 .pitcher-reaction { animation: pitcher-follow-through .35s ease-out both; }
 .umpire { position: absolute; z-index: 12; right: 1%; bottom: 5%; width: 130px; height: 156px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 2px rgb(30 24 14 / 20%)); }
@@ -71,3 +71,17 @@
 /* The result decoration uses the original clover Utang without a round crop. */
 .result-emote-clover { width: 62px; height: 54px; right: 9px; top: 153px; }
 .result-emote-clover img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+
+/* Align the actors to the narrower 9:16 field perspective. */
+.stadium-background { object-fit: cover; object-position: 50% 50%; }
+.pitcher { left: 50%; top: 48.3%; }
+.release-flash, .baseball { left: 50%; top: 48.3%; }
+.catcher { left: 50%; bottom: 2.2%; }
+.abs-zone, .flying-ball { left: 50%; }
+.batter { left: -5px; bottom: 2.2%; }
+.batter-shadow { left: 22px; bottom: 19px; }
+.umpire { right: 1.5%; bottom: 2.2%; }
+@media (max-width: 380px) {
+  .pitcher { top: 48.3%; }
+  .catcher, .batter, .umpire { bottom: 2%; }
+}
