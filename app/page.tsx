@@ -113,6 +113,27 @@ const BAT_SPRITES: Record<BatType, string> = {
   ruby: '/utang-batter-v8-ruby-strip.png',
   diamond: '/utang-batter-v8-diamond-strip.png',
 };
+const imagePreloadCache = new Map<string, Promise<void>>();
+function preloadImage(src: string) {
+  const cached = imagePreloadCache.get(src);
+  if (cached) return cached;
+  const promise = new Promise<void>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = src;
+    if (image.complete) resolve();
+  });
+  imagePreloadCache.set(src, promise);
+  return promise;
+}
+function preloadBatVisuals(bat: BatType) {
+  return Promise.all([
+    preloadImage(BAT_SPRITES[bat]),
+    preloadImage(bat === 'basic' ? '/utang-pose-miss-v121.png' : `/utang-pose-miss-v121-${bat}.png`),
+    preloadImage(bat === 'basic' ? '/utang-batter-v8-follow.png' : `/utang-batter-v8-${bat}-follow.png`),
+  ]);
+}
 const BAT_LABELS: Record<BatType, string> = {
   basic: '기본',
   aluminum: '알루미늄',
@@ -559,7 +580,7 @@ export default function Home() {
       '/utang-pose-miss-v121-gold.png',
       '/utang-pose-miss-v121-ruby.png',
       '/utang-pose-miss-v121-diamond.png',
-      '/utang-pitcher-v122-strip.png',
+      '/utang-pitcher-v124-strip.png',
       '/utang-umpire-v121-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
@@ -567,12 +588,9 @@ export default function Home() {
       '/utang-pose-miss-v121.png',
       '/utang-pose-foul-authentic.png',
       '/baseball-official-cutout.png',
-      '/utang-stadium-v121.webp',
+      '/utang-stadium-v124.webp',
     ];
-    characterAssets.forEach((src) => {
-      const image = new Image();
-      image.src = src;
-    });
+    void Promise.all(characterAssets.map(preloadImage));
   }, []);
   useEffect(
     () => () => {
@@ -624,24 +642,29 @@ export default function Home() {
           }
         : completeDailyGame(loadDailyBatState());
       saveDailyBatState(completion.state);
-      setDailyBatState(completion.state);
-      setBatReward(completion.reward);
-      setRecords(nextRecords);
-      setPitch(null);
-      setScreen('result');
-      setPitcherPhase('idle');
-      setBatterPhase('idle');
-      setBatterFrame(0);
-      setCatcherPhase('idle');
-      trackEvent('result_view');
-      fetch('/api/scores?period=daily')
-        .then((r) =>
-          r.ok ? (r.json() as Promise<{ records?: RecordItem[] }>) : null,
-        )
-        .then((data) => {
-          if (Array.isArray(data?.records)) setRecords(data.records);
-        })
-        .catch(() => undefined);
+      const completedRun = gameRunRef.current;
+      void preloadBatVisuals(completion.state.equippedBat).then(() => {
+        if (completedRun !== gameRunRef.current) return;
+        setDailyBatState(completion.state);
+        setActiveBat(completion.state.equippedBat);
+        setBatReward(completion.reward);
+        setRecords(nextRecords);
+        setPitch(null);
+        setScreen('result');
+        setPitcherPhase('idle');
+        setBatterPhase('idle');
+        setBatterFrame(0);
+        setCatcherPhase('idle');
+        trackEvent('result_view');
+        fetch('/api/scores?period=daily')
+          .then((r) =>
+            r.ok ? (r.json() as Promise<{ records?: RecordItem[] }>) : null,
+          )
+          .then((data) => {
+            if (Array.isArray(data?.records)) setRecords(data.records);
+          })
+          .catch(() => undefined);
+      });
     },
     [nickname],
   );
@@ -778,7 +801,7 @@ export default function Home() {
             if (runId !== gameRunRef.current) return;
             const totals = statsRef.current;
             if (nextNumber >= TOTAL_PITCHES)
-              finishGame(
+              void finishGame(
                 totals.score,
                 totals.homeRuns,
                 totals.maxDistance,
@@ -822,6 +845,7 @@ export default function Home() {
       const runId = ++gameRunRef.current;
       pitchLockedRef.current = true;
       const batState = loadDailyBatState();
+      let nextBat = batState.equippedBat;
       saveDailyBatState(batState);
       setActiveBat(batState.equippedBat);
       setBatReward(null);
@@ -838,7 +862,9 @@ export default function Home() {
         saveDailyBatState(synced);
         setDailyBatState(synced);
         setActiveBat(synced.equippedBat);
+        nextBat = synced.equippedBat;
       }
+      await preloadBatVisuals(nextBat);
       sessionRef.current = serverStart?.sessionId ?? null;
       sessionReadyRef.current = Promise.resolve(sessionRef.current);
       releaseReadyRef.current = Promise.resolve(false);
@@ -1015,7 +1041,7 @@ export default function Home() {
       if (runId !== gameRunRef.current) return;
       setPitch(null);
       if (pitchNumber >= TOTAL_PITCHES)
-        finishGame(nextScore, nextHomeRuns, nextMaxDistance, serverProgress);
+        void finishGame(nextScore, nextHomeRuns, nextMaxDistance, serverProgress);
       else void queuePitch(pitchNumber + 1, runId);
     }, finishDelay);
   }, [
@@ -1519,7 +1545,7 @@ export default function Home() {
             </div>
             <div className="stadium">
               <img
-                src="/utang-stadium-v121.webp"
+                src="/utang-stadium-v124.webp"
                 alt="다양한 우땅이 관중들이 응원하는 야구장"
                 className="stadium-background"
               />
