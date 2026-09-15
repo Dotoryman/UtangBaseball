@@ -5,10 +5,12 @@ import test from 'node:test';
 const page = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
 const styles = await readFile(new URL('../app/v121.css', import.meta.url), 'utf8');
 
-test('contact feedback uses a baseball burst instead of comic sound-effect text', () => {
-  assert.match(page, /className="impact-ball"[\s\S]*?baseball-official-cutout\.png/);
+test('contact feedback uses a firework burst instead of a baseball or sound-effect text', () => {
+  assert.match(page, /className="impact-firework-core"/);
+  assert.doesNotMatch(page, /className="impact-ball"/);
   assert.doesNotMatch(page, /\? '쾅!'|\? '탁!'|: '딱!'/);
   assert.match(styles, /\.comic-contact-effect > i/);
+  assert.match(styles, /\.impact-firework-core::before/);
   assert.match(styles, /@keyframes impact-ring-v121/);
 });
 

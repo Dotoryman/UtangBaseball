@@ -1621,9 +1621,7 @@ export default function Home() {
                   className={`comic-contact-effect comic-${RESULT_META[contact.outcome].tier}`}
                   aria-hidden="true"
                 >
-                  <b className="impact-ball">
-                    <img src="/baseball-official-cutout.png" alt="" />
-                  </b>
+                  <b className="impact-firework-core" />
                   <span className="impact-ring" />
                   {Array.from({ length: 8 }, (_, index) => (
                     <i
