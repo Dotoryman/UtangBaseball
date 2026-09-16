@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import './v080.css';
-import './v081.css';
-import './playful-ui.css';
-import './v100.css';
-import './v121.css';
+import './styles/screens.css';
+import './styles/game-hud.css';
+import './styles/playful-ui.css';
+import './styles/rewards.css';
+import './styles/game-effects.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://utangbaseball.cloud'),
@@ -22,7 +22,12 @@ export const metadata: Metadata = {
     description: '우땅이와 함께 즐기는 빠른 7구 타격 게임',
     type: 'website',
     images: [
-      { url: '/og-utangbaseball-v120.png', width: 1200, height: 630, alt: '따뜻한 야구장에서 타격하는 우땅이' },
+      {
+        url: '/og-utangbaseball-v120.png',
+        width: 1200,
+        height: 630,
+        alt: '따뜻한 야구장에서 타격하는 우땅이',
+      },
     ],
   },
   twitter: {
