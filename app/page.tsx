@@ -34,16 +34,22 @@ import {
   WINDUP_MS,
   type PitchType,
 } from '@/lib/game-config';
+import {
+  APP_VERSION,
+  BAT_COLLECTION,
+  BAT_ICONS,
+  BAT_LABELS,
+  BAT_SPRITES,
+  BATTER_FRAMES,
+  DAILY_BAT_STORAGE_KEY,
+  OUTCOME_EFFECT_TIER,
+  RANKING_PAGE_SIZE,
+  RESULT_META,
+  SWING_CONTACT_FRAME_MS,
+  type Outcome,
+} from '@/lib/game-ui';
 
 type Screen = 'intro' | 'playing' | 'result';
-type Outcome =
-  | 'WHIFF'
-  | 'FOUL'
-  | 'INFIELD_HIT'
-  | 'SINGLE'
-  | 'DOUBLE'
-  | 'TRIPLE'
-  | 'HOME_RUN';
 type BatterPhase = 'idle' | 'ready' | 'swing' | 'followThrough';
 type PitcherPhase = 'idle' | 'windup' | 'throw' | 'followThrough' | 'reaction';
 type CatcherPhase = 'idle' | 'prepare' | 'catch' | 'reaction';
@@ -94,25 +100,6 @@ type StartResponse = {
   dayStart?: number;
 };
 
-const APP_VERSION = 'v1.2.1';
-const BATTER_FRAMES = [
-  'ready',
-  'load',
-  'stride',
-  'start',
-  'mid',
-  'contact',
-  'extension',
-  'follow',
-] as const;
-const DAILY_BAT_STORAGE_KEY = 'utang-baseball-daily-bat-v1';
-const BAT_SPRITES: Record<BatType, string> = {
-  basic: '/utang-batter-v8-strip.png',
-  aluminum: '/utang-batter-v8-aluminum-strip.png',
-  gold: '/utang-batter-v8-gold-strip.png',
-  ruby: '/utang-batter-v8-ruby-strip.png',
-  diamond: '/utang-batter-v8-diamond-strip.png',
-};
 const imagePreloadCache = new Map<string, Promise<void>>();
 function preloadImage(src: string) {
   const cached = imagePreloadCache.get(src);
@@ -130,78 +117,18 @@ function preloadImage(src: string) {
 function preloadBatVisuals(bat: BatType) {
   return Promise.all([
     preloadImage(BAT_SPRITES[bat]),
-    preloadImage(bat === 'basic' ? '/utang-pose-miss-v121.png' : `/utang-pose-miss-v121-${bat}.png`),
-    preloadImage(bat === 'basic' ? '/utang-batter-v8-follow.png' : `/utang-batter-v8-${bat}-follow.png`),
+    preloadImage(
+      bat === 'basic'
+        ? '/utang-pose-miss-v121.png'
+        : `/utang-pose-miss-v121-${bat}.png`,
+    ),
+    preloadImage(
+      bat === 'basic'
+        ? '/utang-batter-v8-follow.png'
+        : `/utang-batter-v8-${bat}-follow.png`,
+    ),
   ]);
 }
-const BAT_LABELS: Record<BatType, string> = {
-  basic: '기본',
-  aluminum: '알루미늄',
-  gold: '황금',
-  ruby: '루비',
-  diamond: '다이아몬드',
-};
-const BAT_ICONS: Record<BatType, string> = {
-  basic: '/utang-bat-gold-v093.png',
-  aluminum: '/utang-bat-aluminum-v113.png',
-  gold: '/utang-bat-gold-v093.png',
-  ruby: '/utang-bat-ruby-v113.png',
-  diamond: '/utang-bat-diamond-v093.png',
-};
-const BAT_COLLECTION: Array<{ type: BatType; games: number }> = [
-  { type: 'basic', games: 0 },
-  { type: 'aluminum', games: 1 },
-  { type: 'gold', games: 2 },
-  { type: 'ruby', games: 3 },
-  { type: 'diamond', games: 4 },
-];
-const RANKING_PAGE_SIZE = 5;
-const SWING_CONTACT_FRAME_MS = 78;
-const RESULT_META: Record<
-  Outcome,
-  { label: string; pose: string; tier: string }
-> = {
-  WHIFF: { label: '에구구!', pose: '/utang-pose-miss-v121.png', tier: 'miss' },
-  FOUL: {
-    label: '파울!',
-    pose: '/utang-pose-foul-authentic.png',
-    tier: 'foul',
-  },
-  INFIELD_HIT: {
-    label: '내야안타!',
-    pose: '/utang-pose-good-authentic.png',
-    tier: 'hit',
-  },
-  SINGLE: {
-    label: '안타!',
-    pose: '/utang-pose-good-authentic.png',
-    tier: 'hit',
-  },
-  DOUBLE: {
-    label: '2루타!',
-    pose: '/utang-pose-good-authentic.png',
-    tier: 'extra',
-  },
-  TRIPLE: {
-    label: '3루타!',
-    pose: '/utang-pose-good-authentic.png',
-    tier: 'extra',
-  },
-  HOME_RUN: {
-    label: '홈런!',
-    pose: '/utang-batter-v8-follow.png',
-    tier: 'homer',
-  },
-};
-const OUTCOME_EFFECT_TIER: Record<Outcome, string> = {
-  WHIFF: 'miss',
-  FOUL: 'foul',
-  INFIELD_HIT: 'infield',
-  SINGLE: 'single',
-  DOUBLE: 'double',
-  TRIPLE: 'triple',
-  HOME_RUN: 'homer',
-};
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -313,10 +240,14 @@ function saveDailyBatState(state: DailyBatState) {
   }
 }
 function missPoseForBat(bat: BatType) {
-  return bat === 'basic' ? RESULT_META.WHIFF.pose : `/utang-pose-miss-v121-${bat}.png`;
+  return bat === 'basic'
+    ? RESULT_META.WHIFF.pose
+    : `/utang-pose-miss-v121-${bat}.png`;
 }
 function followPoseForBat(bat: BatType) {
-  return bat === 'basic' ? RESULT_META.HOME_RUN.pose : `/utang-batter-v8-${bat}-follow.png`;
+  return bat === 'basic'
+    ? RESULT_META.HOME_RUN.pose
+    : `/utang-batter-v8-${bat}-follow.png`;
 }
 function triggerHitHaptic(outcome: Outcome) {
   if (
@@ -1050,7 +981,12 @@ export default function Home() {
       if (runId !== gameRunRef.current) return;
       setPitch(null);
       if (pitchNumber >= TOTAL_PITCHES)
-        void finishGame(nextScore, nextHomeRuns, nextMaxDistance, serverProgress);
+        void finishGame(
+          nextScore,
+          nextHomeRuns,
+          nextMaxDistance,
+          serverProgress,
+        );
       else void queuePitch(pitchNumber + 1, runId);
     }, finishDelay);
   }, [
@@ -1631,7 +1567,10 @@ export default function Home() {
                   aria-hidden="true"
                 >
                   {Array.from({ length: 5 }, (_, burstIndex) => (
-                    <span className={`batter-firework burst-${burstIndex + 1}`} key={burstIndex}>
+                    <span
+                      className={`batter-firework burst-${burstIndex + 1}`}
+                      key={burstIndex}
+                    >
                       {Array.from({ length: 10 }, (_, rayIndex) => (
                         <i
                           key={rayIndex}
@@ -1646,7 +1585,9 @@ export default function Home() {
                     </span>
                   ))}
                   <span className="outcome-gloom">
-                    {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
+                    {Array.from({ length: 9 }, (_, index) => (
+                      <i key={index} />
+                    ))}
                   </span>
                 </span>
               )}
@@ -1877,7 +1818,10 @@ export default function Home() {
                 <Trophy size={16} /> 오늘 잘 친 우땅이 TOP 3
               </div>
               {records.slice(0, 3).map((item, index) => (
-                <div className={`ranking-row rank-${index + 1}`} key={`${item.playedAt}-${index}`}>
+                <div
+                  className={`ranking-row rank-${index + 1}`}
+                  key={`${item.playedAt}-${index}`}
+                >
                   <b>{index + 1}</b>
                   <span>{item.nickname}</span>
                   <strong>{item.score.toLocaleString()}점</strong>

@@ -16,7 +16,7 @@ async function buildBatterStrip() {
   const frameHeight = 288;
   const layers = await Promise.all(
     batterFrames.map(async (name, index) => ({
-      input: await sharp(`public/utang-batter-v8-${name}.png`)
+      input: await sharp(`old/public/utang-batter-v8-${name}.png`)
         .resize(frameWidth, frameHeight, { fit: 'fill' })
         .png()
         .toBuffer(),

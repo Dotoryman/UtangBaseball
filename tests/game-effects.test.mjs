@@ -2,14 +2,27 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const page = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
-const styles = await readFile(new URL('../app/v121.css', import.meta.url), 'utf8');
+const page = await readFile(
+  new URL('../app/page.tsx', import.meta.url),
+  'utf8',
+);
+const styles = await readFile(
+  new URL('../app/styles/game-effects.css', import.meta.url),
+  'utf8',
+);
+const gameUi = await readFile(
+  new URL('../lib/game-ui.ts', import.meta.url),
+  'utf8',
+);
 
 test('contact feedback surrounds the batter with fireworks and has no circular impact badge', () => {
   assert.match(page, /className={`batter-outcome-effect effect-/);
   assert.match(page, /className={`batter-firework burst-/);
   assert.doesNotMatch(page, /className="impact-ball"/);
-  assert.doesNotMatch(page, /impact-firework-core|impact-ring|batter-impact-bubble/);
+  assert.doesNotMatch(
+    page,
+    /impact-firework-core|impact-ring|batter-impact-bubble/,
+  );
   assert.doesNotMatch(page, /\? '쾅!'|\? '탁!'|: '딱!'/);
   assert.match(styles, /\.batter-outcome-effect/);
   assert.match(styles, /@keyframes batter-firework-ray/);
@@ -17,17 +30,26 @@ test('contact feedback surrounds the batter with fireworks and has no circular i
 
 test('hit tiers progressively add fireworks while foul and miss use a dark effect', () => {
   for (const [outcome, tier] of [
-    ['INFIELD_HIT', 'infield'], ['SINGLE', 'single'], ['DOUBLE', 'double'],
-    ['TRIPLE', 'triple'], ['HOME_RUN', 'homer'],
+    ['INFIELD_HIT', 'infield'],
+    ['SINGLE', 'single'],
+    ['DOUBLE', 'double'],
+    ['TRIPLE', 'triple'],
+    ['HOME_RUN', 'homer'],
   ]) {
-    assert.match(page, new RegExp(`${outcome}: '${tier}'`));
+    assert.match(gameUi, new RegExp(`${outcome}: '${tier}'`));
   }
   assert.match(styles, /\.effect-infield \.burst-1/);
   assert.match(styles, /\.effect-single \.burst-1, \.effect-single \.burst-2/);
   assert.match(styles, /\.effect-double[^{]+\.burst-3/);
   assert.match(styles, /\.effect-triple[^{]+\.burst-4/);
-  assert.match(styles, /\.effect-homer \.batter-firework \{ display: block; \}/);
-  assert.match(styles, /\.effect-foul \.outcome-gloom, \.effect-miss \.outcome-gloom/);
+  assert.match(
+    styles,
+    /\.effect-homer \.batter-firework \{ display: block; \}/,
+  );
+  assert.match(
+    styles,
+    /\.effect-foul \.outcome-gloom, \.effect-miss \.outcome-gloom/,
+  );
   assert.match(styles, /\.outcome-gloom::before/);
 });
 

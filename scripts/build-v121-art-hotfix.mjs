@@ -2,8 +2,15 @@ import sharp from 'sharp';
 
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 
-async function normalizeTransparent(source, output, { removeChecker = false } = {}) {
-  const { data, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+async function normalizeTransparent(
+  source,
+  output,
+  { removeChecker = false } = {},
+) {
+  const { data, info } = await sharp(source)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
   if (removeChecker) {
     const outside = new Uint8Array(info.width * info.height);
@@ -13,7 +20,9 @@ async function normalizeTransparent(source, output, { removeChecker = false } = 
       const r = data[offset];
       const g = data[offset + 1];
       const b = data[offset + 2];
-      return Math.max(r, g, b) - Math.min(r, g, b) < 18 && Math.min(r, g, b) > 105;
+      return (
+        Math.max(r, g, b) - Math.min(r, g, b) < 18 && Math.min(r, g, b) > 105
+      );
     };
     const add = (point) => {
       if (!outside[point] && isBackdrop(point)) {
@@ -51,14 +60,19 @@ async function normalizeTransparent(source, output, { removeChecker = false } = 
     .resize(352, 352, { fit: 'contain', background: transparent })
     .png()
     .toBuffer();
-  await sharp({ create: { width: 384, height: 384, channels: 4, background: transparent } })
+  await sharp({
+    create: { width: 384, height: 384, channels: 4, background: transparent },
+  })
     .composite([{ input: sprite, gravity: 'centre' }])
     .png({ compressionLevel: 9 })
     .toFile(output);
 }
 
 async function strengthenMiss(source, output) {
-  const { data, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(source)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   for (let y = 0; y < info.height; y += 1) {
     for (let x = 0; x < info.width; x += 1) {
       const offset = (y * info.width + x) * 4;
@@ -91,24 +105,45 @@ await sharp('assets/source/utang-stadium-v121-source.png')
   .toFile('public/utang-stadium-v121.webp');
 
 await Promise.all([
-  normalizeTransparent('assets/source/utang-umpire-v121-idle-source.png', 'public/utang-umpire-v121-idle.png'),
-  normalizeTransparent('assets/source/utang-umpire-v121-strike-source.png', 'public/utang-umpire-v121-strike.png', { removeChecker: true }),
-  normalizeTransparent('assets/source/utang-umpire-v121-fair-source.png', 'public/utang-umpire-v121-fair.png', { removeChecker: true }),
+  normalizeTransparent(
+    'assets/source/utang-umpire-v121-idle-source.png',
+    'public/utang-umpire-v121-idle.png',
+  ),
+  normalizeTransparent(
+    'assets/source/utang-umpire-v121-strike-source.png',
+    'public/utang-umpire-v121-strike.png',
+    { removeChecker: true },
+  ),
+  normalizeTransparent(
+    'assets/source/utang-umpire-v121-fair-source.png',
+    'public/utang-umpire-v121-fair.png',
+    { removeChecker: true },
+  ),
 ]);
 
-await sharp({ create: { width: 1152, height: 384, channels: 4, background: transparent } })
-  .composite(['idle', 'strike', 'fair'].map((pose, index) => ({
-    input: `public/utang-umpire-v121-${pose}.png`,
-    left: index * 384,
-    top: 0,
-  })))
+await sharp({
+  create: { width: 1152, height: 384, channels: 4, background: transparent },
+})
+  .composite(
+    ['idle', 'strike', 'fair'].map((pose, index) => ({
+      input: `public/utang-umpire-v121-${pose}.png`,
+      left: index * 384,
+      top: 0,
+    })),
+  )
   .png({ compressionLevel: 9 })
   .toFile('public/utang-umpire-v121-strip.png');
 
 await Promise.all([
-  strengthenMiss('public/utang-pose-miss-v071.png', 'public/utang-pose-miss-v121.png'),
+  strengthenMiss(
+    'public/utang-pose-miss-v071.png',
+    'public/utang-pose-miss-v121.png',
+  ),
   ...['aluminum', 'gold', 'ruby', 'diamond'].map((bat) =>
-    strengthenMiss(`public/utang-pose-miss-v093-${bat}.png`, `public/utang-pose-miss-v121-${bat}.png`),
+    strengthenMiss(
+      `old/public/utang-pose-miss-v093-${bat}.png`,
+      `public/utang-pose-miss-v121-${bat}.png`,
+    ),
   ),
 ]);
 
