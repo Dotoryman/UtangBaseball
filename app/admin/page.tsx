@@ -30,10 +30,7 @@ type DashboardData = {
   players: MetricRow;
   daily: MetricRow[];
   hourly: MetricRow[];
-  funnel: MetricRow[];
-  distributions: MetricRow;
   recent: MetricRow[];
-  lifetime: MetricRow;
 };
 type Ranking = {
   id: number;
@@ -60,18 +57,6 @@ type AuditData = {
   }>;
 };
 
-const FUNNEL_LABELS: Record<string, string> = {
-  landing: '시작 페이지 진입',
-  play_click: 'PLAY BALL 클릭',
-  game_start: '게임 시작',
-  game_complete: '1판 완료',
-  retry_click: '다시 플레이 클릭',
-  second_complete: '2판 완료',
-  result_view: '결과 화면 확인',
-  share_click: '카카오 공유 클릭',
-  referral: '공유 링크 유입',
-};
-const FUNNEL_ORDER = Object.keys(FUNNEL_LABELS);
 const ACTION_LABELS: Record<string, string> = {
   LOGIN: '관리자 로그인',
   DELETE_SCORE: '랭킹 기록 삭제',
@@ -230,9 +215,7 @@ export default function AdminPage() {
         records: Ranking[];
         total: number;
         maskSummary: MaskSummary;
-      }>(
-        `/api/admin/rankings?${params}`,
-      );
+      }>(`/api/admin/rankings?${params}`);
       setRankings(result.records);
       setRankingTotal(result.total);
       setMaskSummary(result.maskSummary);
@@ -463,44 +446,15 @@ export default function AdminPage() {
 
   const summary = data?.summary ?? {};
   const players = data?.players ?? {};
-  const lifetime = data?.lifetime ?? {};
   const completed = number(summary.completed_games);
   const users = number(players.users);
-  const totalHits =
-    number(summary.infield_hits) +
-    number(summary.singles) +
-    number(summary.doubles) +
-    number(summary.triples) +
-    number(summary.home_runs);
-  const funnel = FUNNEL_ORDER.map((event) => ({
-    event,
-    users: number(data?.funnel.find((row) => row.event === event)?.users),
-  }));
-  const firstFunnel = Math.max(1, funnel[0]?.users ?? 0);
-  const outcomeRows = [
-    ['MISS', summary.misses],
-    ['FOUL', summary.fouls],
-    ['내야안타', summary.infield_hits],
-    ['안타', summary.singles],
-    ['2루타', summary.doubles],
-    ['3루타', summary.triples],
-    ['홈런', summary.home_runs],
+  const playerPlayRows = [
+    ['1판', players.one_play],
+    ['2판', players.two_plays],
+    ['3판', players.three_plays],
+    ['4판', players.four_plays],
+    ['5판 이상', players.five_plus],
   ].map(([label, value]) => ({ label, value: number(value) }));
-  const distanceRows = [
-    ['0m', 'd0'],
-    ['1–29m', 'd1'],
-    ['30–72m', 'd2'],
-    ['73–95m', 'd3'],
-    ['96–114m', 'd4'],
-    ['115m+', 'd5'],
-  ].map(([label, key]) => ({ label, value: number(data?.distributions[key]) }));
-  const comboRows = [
-    ['0', 'c0'],
-    ['1–2', 'c1'],
-    ['3–5', 'c2'],
-    ['6–9', 'c3'],
-    ['10', 'c4'],
-  ].map(([label, key]) => ({ label, value: number(data?.distributions[key]) }));
 
   return (
     <main className="admin-shell">
@@ -548,7 +502,7 @@ export default function AdminPage() {
               {tab === 'dashboard'
                 ? '오늘도 우땅이는 열일 중'
                 : tab === 'stats'
-                  ? '공은 어디까지 날아갔을까?'
+                  ? '언제, 몇 판이나 놀았을까?'
                   : tab === 'ranking'
                     ? '오늘의 우땅왕 관리'
                     : tab === 'words'
@@ -686,63 +640,11 @@ export default function AdminPage() {
                 </div>
               </article>
             </section>
-            <section className="admin-card lab-summary">
-              <header>
-                <div>
-                  <span className="lab-badge">누적 재미 통계</span>
-                  <h2>우땅 연구소 관측 기록</h2>
-                </div>
-                <img src="/utang-countdown-v071.png" alt="공을 든 우땅이" />
-              </header>
-              <div>
-                <span>
-                  전체 플레이 <b>{pretty(lifetime.plays)}판</b>
-                </span>
-                <span>
-                  전체 홈런 <b>{pretty(lifetime.homeRuns)}개</b>
-                </span>
-                <span>
-                  전체 안타 <b>{pretty(lifetime.hits)}개</b>
-                </span>
-                <span>
-                  날아간 거리 <b>{pretty(lifetime.totalDistance)}m</b>
-                </span>
-                <span>
-                  역대 최고 거리 <b>{pretty(lifetime.maxDistance)}m</b>
-                </span>
-                <span>
-                  역대 최고 점수 <b>{pretty(lifetime.maxScore)}점</b>
-                </span>
-                <span>
-                  전체 헛스윙 <b>{pretty(lifetime.misses)}번</b>
-                </span>
-              </div>
-            </section>
           </>
         )}
 
         {tab === 'stats' && (
           <>
-            <section className="admin-grid three">
-              <article className="admin-card">
-                <header>
-                  <h2>타격 결과</h2>
-                </header>
-                <Bars rows={outcomeRows} labelKey="label" valueKey="value" />
-              </article>
-              <article className="admin-card">
-                <header>
-                  <h2>비거리 분포</h2>
-                </header>
-                <Bars rows={distanceRows} labelKey="label" valueKey="value" />
-              </article>
-              <article className="admin-card">
-                <header>
-                  <h2>최고 콤보 분포</h2>
-                </header>
-                <Bars rows={comboRows} labelKey="label" valueKey="value" />
-              </article>
-            </section>
             <section className="admin-grid two">
               <article className="admin-card">
                 <header>
@@ -759,83 +661,12 @@ export default function AdminPage() {
               </article>
               <article className="admin-card">
                 <header>
-                  <h2>다시 찾아온 우땅이</h2>
+                  <h2>사용자별 완료 판수</h2>
+                  <span>평균 {number(players.avg_plays).toFixed(1)}판</span>
                 </header>
-                <div className="ratio-list">
-                  <div>
-                    <span>1판만 플레이</span>
-                    <b>
-                      {users
-                        ? ((number(players.one_play) / users) * 100).toFixed(1)
-                        : 0}
-                      %
-                    </b>
-                  </div>
-                  <div>
-                    <span>2판 이상</span>
-                    <b>
-                      {users
-                        ? ((number(players.two_plus) / users) * 100).toFixed(1)
-                        : 0}
-                      %
-                    </b>
-                  </div>
-                  <div>
-                    <span>3판 이상</span>
-                    <b>
-                      {users
-                        ? ((number(players.three_plus) / users) * 100).toFixed(
-                            1,
-                          )
-                        : 0}
-                      %
-                    </b>
-                  </div>
-                  <div>
-                    <span>평균 비거리</span>
-                    <b>
-                      {totalHits
-                        ? Math.round(number(summary.total_distance) / totalHits)
-                        : 0}
-                      m
-                    </b>
-                  </div>
-                  <div>
-                    <span>평균 최고 콤보</span>
-                    <b>
-                      {completed
-                        ? (number(summary.sum_max_combo) / completed).toFixed(1)
-                        : '0.0'}
-                    </b>
-                  </div>
-                </div>
+                <Bars rows={playerPlayRows} labelKey="label" valueKey="value" />
               </article>
             </section>
-            <article className="admin-card funnel-card">
-              <header>
-                <h2>플레이 흐름</h2>
-                <span>단계별 고유 사용자</span>
-              </header>
-              <div>
-                {funnel.map((row, index) => (
-                  <div className="funnel-step" key={row.event}>
-                    <b>{index + 1}</b>
-                    <span>{FUNNEL_LABELS[row.event]}</span>
-                    <i>
-                      <em
-                        style={{
-                          width: `${Math.max(2, (row.users / firstFunnel) * 100)}%`,
-                        }}
-                      />
-                    </i>
-                    <strong>{row.users}명</strong>
-                    <small>
-                      {((row.users / firstFunnel) * 100).toFixed(1)}%
-                    </small>
-                  </div>
-                ))}
-              </div>
-            </article>
           </>
         )}
 
@@ -936,7 +767,10 @@ export default function AdminPage() {
                                 maskingNickname === row.originalNickname
                               }
                               onChange={(event) =>
-                                void toggleNicknameMask(row, event.target.checked)
+                                void toggleNicknameMask(
+                                  row,
+                                  event.target.checked,
+                                )
                               }
                             />
                             <span>우땅이 이름으로 표시</span>

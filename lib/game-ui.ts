@@ -9,7 +9,7 @@ export type Outcome =
   | 'TRIPLE'
   | 'HOME_RUN';
 
-export const APP_VERSION = 'v1.2.2';
+export const APP_VERSION = 'v1.0.0';
 export const DAILY_BAT_STORAGE_KEY = 'utang-baseball-daily-bat-v1';
 export const RANKING_PAGE_SIZE = 5;
 export const SWING_CONTACT_FRAME_MS = 78;
