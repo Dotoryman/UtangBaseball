@@ -4,6 +4,7 @@
 
 - `build-core-sprites.mjs`: 타자·투수·포수 기본 스프라이트 생성
 - `build-v093-bats.mjs`: 배트 색상별 타격 스프라이트 생성
+- `build-foul-pose-bats.mjs`: 야구복 파울 포즈와 장착 배트 색상별 이미지 생성
 - `build-v121-art-hotfix.mjs`: 심판과 실패 포즈 생성
 - `build-v124-field-hotfix.mjs`: 현재 경기장과 투수 스프라이트 생성
 - `build-share-v073.mjs`: 공유 카드 배경과 대표 이미지 생성
