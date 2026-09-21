@@ -83,15 +83,30 @@ function kstDate(value: number) {
   }).format(value);
 }
 
+class AdminApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'AdminApiError';
+  }
+}
+
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...init?.headers },
   });
   const data = (await response.json().catch(() => ({}))) as T & {
     error?: string;
   };
-  if (!response.ok) throw new Error(data.error ?? '요청을 처리하지 못했어.');
+  if (!response.ok)
+    throw new AdminApiError(
+      data.error ?? '요청을 처리하지 못했어.',
+      response.status,
+    );
   return data;
 }
 
@@ -177,6 +192,14 @@ export default function AdminPage() {
   const [maskingNickname, setMaskingNickname] = useState('');
   const [bulkMasking, setBulkMasking] = useState(false);
 
+  const handleUnauthorized = useCallback((error: unknown) => {
+    if (!(error instanceof AdminApiError) || error.status !== 401) return false;
+    setAuthenticated(false);
+    setData(null);
+    setNotice('인증이 만료됐어. 다시 로그인해줘.');
+    return true;
+  }, []);
+
   const query = useMemo(() => {
     const params = new URLSearchParams({ period });
     if (period === 'custom' && customFrom && customTo) {
@@ -198,13 +221,14 @@ export default function AdminPage() {
       setData(await api<DashboardData>(`/api/admin/dashboard?${query}`));
       setNotice('');
     } catch (error) {
+      if (handleUnauthorized(error)) return;
       setNotice(
         error instanceof Error ? error.message : '현황을 불러오지 못했어.',
       );
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [handleUnauthorized, query]);
   const loadRankings = useCallback(async () => {
     const params = new URLSearchParams(query);
     params.set('search', search);
@@ -220,27 +244,30 @@ export default function AdminPage() {
       setRankingTotal(result.total);
       setMaskSummary(result.maskSummary);
     } catch (error) {
+      if (handleUnauthorized(error)) return;
       setNotice(
         error instanceof Error ? error.message : '랭킹을 불러오지 못했어.',
       );
     }
-  }, [page, query, search, sort]);
+  }, [handleUnauthorized, page, query, search, sort]);
   const loadWords = useCallback(async () => {
     try {
       setWords(
         (await api<{ words: BannedWord[] }>('/api/admin/banned-words')).words,
       );
-    } catch {
+    } catch (error) {
+      handleUnauthorized(error);
       /* Shown by the main dashboard notice. */
     }
-  }, []);
+  }, [handleUnauthorized]);
   const loadAudit = useCallback(async () => {
     try {
       setAudit(await api<AuditData>('/api/admin/audit'));
-    } catch {
+    } catch (error) {
+      handleUnauthorized(error);
       /* Shown by the main dashboard notice. */
     }
-  }, []);
+  }, [handleUnauthorized]);
 
   useEffect(() => {
     api<{ authenticated: boolean }>('/api/admin/auth')
@@ -268,6 +295,9 @@ export default function AdminPage() {
         method: 'POST',
         body: JSON.stringify({ password }),
       });
+      const session = await api<{ authenticated: boolean }>('/api/admin/auth');
+      if (!session.authenticated)
+        throw new Error('인증 정보를 저장하지 못했어. 다시 시도해줘.');
       setPassword('');
       setAuthenticated(true);
     } catch (error) {
