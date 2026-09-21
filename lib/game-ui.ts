@@ -64,7 +64,7 @@ export const RESULT_META: Record<
   WHIFF: { label: '에구구!', pose: '/utang-pose-miss-v121.png', tier: 'miss' },
   FOUL: {
     label: '파울!',
-    pose: '/utang-pose-foul-authentic.png',
+    pose: '/utang-pose-foul-uniform.png',
     tier: 'foul',
   },
   INFIELD_HIT: {

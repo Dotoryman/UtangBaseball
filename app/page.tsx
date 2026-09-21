@@ -249,6 +249,11 @@ function followPoseForBat(bat: BatType) {
     ? RESULT_META.HOME_RUN.pose
     : `/utang-batter-v8-${bat}-follow.png`;
 }
+function foulPoseForBat(bat: BatType) {
+  return bat === 'basic'
+    ? RESULT_META.FOUL.pose
+    : `/utang-pose-foul-uniform-${bat}.png`;
+}
 function triggerHitHaptic(outcome: Outcome) {
   if (
     outcome === 'WHIFF' ||
@@ -520,13 +525,17 @@ export default function Home() {
       '/utang-pose-miss-v121-gold.png',
       '/utang-pose-miss-v121-ruby.png',
       '/utang-pose-miss-v121-diamond.png',
+      '/utang-pose-foul-uniform.png',
+      '/utang-pose-foul-uniform-aluminum.png',
+      '/utang-pose-foul-uniform-gold.png',
+      '/utang-pose-foul-uniform-ruby.png',
+      '/utang-pose-foul-uniform-diamond.png',
       '/utang-pitcher-v124-strip.png',
       '/utang-umpire-v121-strip.png',
       '/utang-catcher-v6-strip.png',
       '/utang-batter-v8-follow.png',
       '/utang-pose-good-authentic.png',
       '/utang-pose-miss-v121.png',
-      '/utang-pose-foul-authentic.png',
       '/baseball-official-cutout.png',
       '/utang-stadium-v124.webp',
     ];
@@ -1644,7 +1653,7 @@ export default function Home() {
                     src={
                       contact.outcome === 'WHIFF'
                         ? missPoseForBat(activeBat)
-                        : RESULT_META[contact.outcome].pose
+                        : foulPoseForBat(activeBat)
                     }
                     alt=""
                     className="batter-reaction"

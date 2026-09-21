@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
-    "assets:build": "node scripts/build-core-sprites.mjs && node scripts/build-v093-bats.mjs && node scripts/build-v121-art-hotfix.mjs && node scripts/build-v124-field-hotfix.mjs && node scripts/build-countdown-stickers-v120.mjs && node scripts/build-share-v073.mjs && node scripts/optimize-runtime-assets.mjs",
+    "assets:build": "node scripts/build-core-sprites.mjs && node scripts/build-v093-bats.mjs && node scripts/build-foul-pose-bats.mjs && node scripts/build-v121-art-hotfix.mjs && node scripts/build-v124-field-hotfix.mjs && node scripts/build-countdown-stickers-v120.mjs && node scripts/build-share-v073.mjs && node scripts/optimize-runtime-assets.mjs",
     "lint": "oxlint app lib",
     "format": "oxfmt",
     "typecheck": "tsc --noEmit",
