@@ -106,10 +106,20 @@ function preloadImage(src: string) {
   if (cached) return cached;
   const promise = new Promise<void>((resolve) => {
     const image = new Image();
-    image.onload = () => resolve();
-    image.onerror = () => resolve();
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      image.onload = null;
+      image.onerror = null;
+      resolve();
+    };
+    const timeout = setTimeout(finish, 3500);
+    image.onload = finish;
+    image.onerror = finish;
     image.src = src;
-    if (image.complete) resolve();
+    if (image.complete) finish();
   });
   imagePreloadCache.set(src, promise);
   return promise;
@@ -591,29 +601,26 @@ export default function Home() {
           }
         : completeDailyGame(loadDailyBatState());
       saveDailyBatState(completion.state);
-      const completedRun = gameRunRef.current;
-      void preloadBatVisuals(completion.state.equippedBat).then(() => {
-        if (completedRun !== gameRunRef.current) return;
-        setDailyBatState(completion.state);
-        setActiveBat(completion.state.equippedBat);
-        setBatReward(completion.reward);
-        setRecords(nextRecords);
-        setPitch(null);
-        setScreen('result');
-        setPitcherPhase('idle');
-        setBatterPhase('idle');
-        setBatterFrame(0);
-        setCatcherPhase('idle');
-        trackEvent('result_view');
-        fetch('/api/scores?period=daily')
-          .then((r) =>
-            r.ok ? (r.json() as Promise<{ records?: RecordItem[] }>) : null,
-          )
-          .then((data) => {
-            if (Array.isArray(data?.records)) setRecords(data.records);
-          })
-          .catch(() => undefined);
-      });
+      setDailyBatState(completion.state);
+      setActiveBat(completion.state.equippedBat);
+      setBatReward(completion.reward);
+      setRecords(nextRecords);
+      setPitch(null);
+      setScreen('result');
+      setPitcherPhase('idle');
+      setBatterPhase('idle');
+      setBatterFrame(0);
+      setCatcherPhase('idle');
+      void preloadBatVisuals(completion.state.equippedBat);
+      trackEvent('result_view');
+      fetch('/api/scores?period=daily')
+        .then((r) =>
+          r.ok ? (r.json() as Promise<{ records?: RecordItem[] }>) : null,
+        )
+        .then((data) => {
+          if (Array.isArray(data?.records)) setRecords(data.records);
+        })
+        .catch(() => undefined);
     },
     [nickname],
   );
