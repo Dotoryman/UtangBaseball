@@ -360,12 +360,23 @@ export async function POST(request: Request) {
       );
     let dailyBat = null;
     if (completedAt && row.player_id) {
-      const completed = await env.DB.prepare(
-        'SELECT COUNT(*) AS count FROM scores WHERE player_id = ? AND played_at >= ?',
-      )
-        .bind(row.player_id, koreanDayStart(completedAt))
-        .first<{ count: number }>();
-      dailyBat = batProgress(completed?.count ?? 0, completedAt);
+      try {
+        const completed = await env.DB.prepare(
+          'SELECT COUNT(*) AS count FROM scores WHERE player_id = ? AND played_at >= ?',
+        )
+          .bind(row.player_id, koreanDayStart(completedAt))
+          .first<{ count: number }>();
+        dailyBat = batProgress(completed?.count ?? 0, completedAt);
+      } catch (error) {
+        // The score has already committed. Keep the result available even if
+        // the optional reward lookup fails; the next start resyncs bat state.
+        console.error(
+          JSON.stringify({
+            message: 'daily bat progress lookup failed',
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
     }
     return Response.json({
       contact,
