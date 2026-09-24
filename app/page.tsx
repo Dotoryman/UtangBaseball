@@ -284,12 +284,16 @@ async function copyText(text: string) {
     field.value = text;
     field.style.position = 'fixed';
     field.style.opacity = '0';
-    document.body.appendChild(field);
-    field.focus();
-    field.select();
-    const copied = document.execCommand('copy');
-    field.remove();
-    return copied;
+    try {
+      document.body.appendChild(field);
+      field.focus();
+      field.select();
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      field.remove();
+    }
   }
 }
 async function postGame<T>(body: Record<string, unknown>): Promise<T> {
@@ -821,6 +825,10 @@ export default function Home() {
         nextBat = synced.equippedBat;
       }
       await preloadBatVisuals(nextBat);
+      if (runId !== gameRunRef.current) {
+        startBusy.current = false;
+        return;
+      }
       sessionRef.current = serverStart?.sessionId ?? null;
       sessionReadyRef.current = Promise.resolve(sessionRef.current);
       releaseReadyRef.current = Promise.resolve(false);
