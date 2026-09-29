@@ -9,5 +9,3 @@ https://dotoryman.com
 A mobile-first timing baseball game featuring the Utang character.
 
 **언어 및 기술 · Languages & Technologies:** TypeScript · CSS · JavaScript · React · Vinext · Cloudflare Workers · D1 · R2
-
-<!-- Temporary README contribution marker: 2026-09-29 Asia/Seoul; immediately reverted. -->
