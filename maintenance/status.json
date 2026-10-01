@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "repository": "Dotoryman/UtangBaseball",
+  "project_kind": "web",
+  "checked_date_kst": "2026-10-01",
+  "checked_at_utc": "2026-10-01T00:10:42.057Z",
+  "default_branch": "main",
+  "inspected_commit": "669ef0e95b15d7fbf1a16719c8f464479461533e",
+  "workflow_run": "https://github.com/Dotoryman/UtangBaseball/actions/runs/36794827270",
+  "inventory": {
+    "tracked_project_files": 319,
+    "tracked_project_bytes": 100927386,
+    "content_sha256": "153045d75a35d23443ca6d5eb1d1b86b04bfe94b15168b8e4f7cf7bec23ce11d",
+    "package": {
+      "name": "utang-baseball",
+      "version": "1.0.0",
+      "node": ">=22.13.0",
+      "scripts": [
+        "assets:build",
+        "build",
+        "db:migrate",
+        "db:migrate:local",
+        "deploy",
+        "dev",
+        "format",
+        "lint",
+        "start",
+        "test",
+        "typecheck"
+      ],
+      "direct_dependencies": 11,
+      "development_dependencies": 14,
+      "locked_packages": 622,
+      "lockfile_version": 3
+    },
+    "source_files": 28,
+    "test_files": 14,
+    "sql_migrations": 13,
+    "public_assets": 67
+  },
+  "checks": [
+    {
+      "name": "README present and nonempty",
+      "passed": true,
+      "details": "Tracked README.md"
+    },
+    {
+      "name": "npm lock root matches manifest",
+      "passed": true,
+      "details": "Compared name, version and declared dependency specifications; npm ci was not run."
+    },
+    {
+      "name": "Project source inventory nonempty",
+      "passed": true,
+      "details": "app, components, domain, infrastructure, lib, worker, static-src"
+    },
+    {
+      "name": "Cloudflare configuration present",
+      "passed": true,
+      "details": "wrangler.jsonc"
+    }
+  ],
+  "result": "passed",
+  "scope": "Repository structure, manifest consistency and tracked asset references only. Application tests, builds, dependency vulnerability scans and live service availability are not assessed."
+}
